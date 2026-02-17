@@ -8,7 +8,8 @@ import random
 header = "drink_id, receipt_id\n"
 
 #50% chance one drink ordered per receipt
-#50% chance two drinks. If two drinks ordered, 50% chance an additional third drink ordered
+#25% chance two drinks
+#25% chance three drinks
 
 with open("drink_to_recipt.csv", "w") as file:
     file.write(header)
