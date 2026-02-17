@@ -1,28 +1,26 @@
-'''
+"""
 This is dedicated to the Most Sacred Heart of Jesus, 
 the Immaculate Heart of Mary 
 and the Chaste Heart of St. Joseph
-'''
-import csv
+"""
 
-header = ['id', 'name', 'amount', 'ice_level', 'traditional_boba', 'popping_boba', 'sweetness', 'milk']
-drink_varieties = [
-    [1, 'Black Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [2, 'Green Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [3, 'Matcha Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [4, 'Taro Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [5, 'Jasmine Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [6, 'Oolong Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [7, 'Thai Milk Tea', 6.00, 'Normal', False, False, 100, 'Cow']
-    [8, 'Black Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [9, 'Green Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [10, 'Matcha Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [11, 'Taro Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [12, 'Jasmine Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [13, 'Oolong Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [14, 'Thai Tea', 4.00, 'Normal', False, False, 100, 'None']
-    [15, 'Chocolate Milk', 2.00, 'None', False, False, 100, 'Cow']
+header = "id, name, amount, ice_level, traditional_boba, popping_boba, sweetness, milk"
+drinkVarieties = [
+    {"name": "Black Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Green Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Matcha Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Taro Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Jasmine Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Oolong Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Thai Milk Tea", "amount": "6.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"},
+    {"name": "Black Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Green Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Matcha Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Taro Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Jasmine Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Oolong Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Thai Tea", "amount": "4.00", "ice_level": "Normal", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "None"},
+    {"name": "Chocolate Milk", "amount": "2.00", "ice_level": "None", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"}
 ]
-
 
 
