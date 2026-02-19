@@ -1,3 +1,42 @@
+import random
+
+########## python generative logic
+
+first_names = [
+    "Marcus", "Sarah", "Amina", "David", "Elena",
+    "Kevin", "Riley", "Sloane", "Isaac", "Maya",
+    "Jordan", "Taylor", "Alex", "Morgan", "Casey"
+]
+
+last_names = [
+    "Chen", "Jenkins", "Yusuf", "Miller", "Rodriguez",
+    "Park", "Thompson", "Baxter", "Newton", "Williams",
+    "Lopez", "Anderson", "Garcia", "Turner", "Reed"
+]
+
+base_phone_number = 100  # starting last 4 digits
+
+for i in range(10):  # generate 10 employees
+    
+    name = random.choice(first_names) + " " + random.choice(last_names)
+    
+    phone = f"832-555-{base_phone_number + i:04d}"
+    
+    hourly_pay = 12.50  # fixed pay
+    
+    employee_info.append({
+        "name": name,
+        "phone": phone,
+        "hourly_pay": hourly_pay
+    })
+
+# Print result
+for employee in employee_info:
+    print(employee)
+
+
+##########
+
 employee_info = [
      { "name": "Marcus Chen", "phone": "832-555-0101", "hourly_pay": 12.50},
      { "name": "Sarah Jenkins", "phone": "832-555-0102", "hourly_pay": 12.50},
