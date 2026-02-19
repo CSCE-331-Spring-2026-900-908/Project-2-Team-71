@@ -148,13 +148,14 @@ inventory_with_suppliers = [
     {"item": "French fries", "supplier": "Golden Pearl Beverage Supply", "contact": "555-210-8745", "supplier_price": 40.00}
 ]
 
-with open("purchaces.csv", "w") as file:
+with open("purchaces.csv", "w") as file:  # writing out to csv for data base
     itemLen = len(inventory_with_suppliers) - 1
-    file.write("id, item_id, buy_date, supplier_name, supplier_contact, amount, supplier_price\n")
+    file.write("id, item_id, buy_date, supplier_name, supplier_contact, amount, supplier_price\n") # write out attributes
     for (key, x) in enumerate(range(random.randint(100,300))):
-        random_days = random.randint(0, 365*5)
+        random_days = random.randint(0, 365*5) # min a year record of purchases
         date_str = (datetime.now() - timedelta(days=random_days)).strftime("%Y-%m-%d")
         itemID = random.randint(0,itemLen)
         item = f"{key}, {itemID}, {date_str}, {inventory_with_suppliers[itemID]["supplier"]}, {inventory_with_suppliers[itemID]["contact"]}, {random.randint(10,100)}, {inventory_with_suppliers[itemID]["supplier_price"]}\n"
         file.write(item)
+
 
