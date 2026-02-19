@@ -1,5 +1,54 @@
 import random
 
+########## python to generate array
+
+# Sample name pools
+first_names = [
+    "Chloe", "Scarlett", "Penelope", "Violet", "Samuel", "Paige",
+    "Brianna", "Katherine", "Hunter", "Julia", "Isaac", "Grace",
+    "Tristan", "Madison", "Hazel", "Finn", "Dylan", "Alice",
+    "Thomas", "Abigail", "Amelia", "Joshua", "Kevin", "Gavin",
+    "Charlotte", "Emily", "Aaron", "Noah", "Benjamin", "Michael",
+    "Ella", "Jacob", "Carter"
+]
+
+last_names = [
+    "Gonzalez", "Peterson", "Scott", "Wright", "Rogers", "Davis",
+    "Anderson", "Hill", "Miller", "Walker", "Mitchell", "Ortiz",
+    "Chavez", "Jackson", "Ramos", "Hernandez", "Sanders", "Kelly",
+    "Nguyen", "Thompson", "Myers", "King", "Wood", "Smith",
+    "Bennett", "Martinez", "Gray", "Adams", "Bailey", "Cruz",
+    "Rodriguez", "Howard", "Jones"
+]
+
+# Add Anonymous user manually (since it's special)
+customers.append({
+    "name": "Anonymous User",
+    "phone": "000-000-0000",
+    "points": 0
+})
+
+# Generate 40 random customers
+for _ in range(40):
+    name = random.choice(first_names) + " " + random.choice(last_names)
+    
+    phone = f"210-{random.randint(100,999)}-{random.randint(1000,9999)}"
+    
+    points = random.randint(0, 150)
+    
+    customers.append({
+        "name": name,
+        "phone": phone,
+        "points": points
+    })
+
+# Print test
+#for customer in customers:
+#    print(customer)
+
+
+##########
+
 customers = [
     {'name': 'Anonymous User', 'phone': '000-000-0000', 'points': 0},
     {'name': 'Chloe Gonzalez', 'phone': '210-653-4071', 'points': 143}, 
@@ -49,5 +98,6 @@ with open("customers.csv", "w") as file:  #create and writie out to csv file
     for (id, item) in enumerate(customers):
         itemString = f"{id}, {item['name']}, {item['phone']}, {item['points']}\n"  #ad ids and put array into the csv
         file.write(itemString)
+
 
 
