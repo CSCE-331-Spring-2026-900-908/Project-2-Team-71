@@ -37,7 +37,7 @@ for i in range(1, 301): # Loop 300 times
 for r in receipt_info[:5]:
     print(r)
 # Write to CSV
-with open("receipt.csv", "w") as file:
+with open("data/receipt.csv", "w") as file:
     file.write("receipt_id, purchase_date, total_price, customer_id, cashier_id\n")
     for receipt in receipt_info:
         line = f"{receipt['receipt_id']}, {receipt['purchase_date']}, {receipt['total_price']}, {receipt['customer_id']}, {receipt['cashier_id']}\n"

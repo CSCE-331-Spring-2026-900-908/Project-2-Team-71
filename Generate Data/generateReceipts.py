@@ -11,9 +11,9 @@ NUM_RECEIPTS = 999
 MAX_DRINK_ID = 14   # change to match your drink table
 MAX_FOOD_ID = 8     # change to match your food table
 
-RECEIPT_FILE = "receipt.csv"
-DRINK_FILE = "drink_to_receipt.csv"
-FOOD_FILE = "food_to_receipt.csv"
+RECEIPT_FILE = "data/receipt.csv"
+DRINK_FILE = "data/drink_to_receipt.csv"
+FOOD_FILE = "data/food_to_receipt.csv"
 
 # =====================================
 # HELPERS

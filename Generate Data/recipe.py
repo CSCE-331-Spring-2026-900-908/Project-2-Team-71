@@ -39,7 +39,7 @@ recipe_map = {
 # 3. Create the CSV File
 all_menu_items = {**drinks, **food}
 
-with open('recipe.csv', 'w', newline='') as csvfile:
+with open('data/recipe.csv', 'w', newline='') as csvfile:
     fieldnames = ['menu_id', 'menu_item_name', 'inventory_id']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()

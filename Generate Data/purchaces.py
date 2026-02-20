@@ -43,8 +43,10 @@ inventory_with_suppliers = [
     {"item": "French fries", "supplier": "Golden Pearl Beverage Supply", "contact": "555-210-8745", "supplier_price": 40.00}
 ]
 
-with open("inventory.csv", "w") as file:
-    file.write("id, amount, name, supplier_name, supplier_contact")
-    for (id, item) in enumerate(inventory_with_suppliers):
-        itemString = f"{id}, {random.randint(0, 20)}, {item["item"]}, {item["supplier"]}, {item["contact"]}\n"
-        file.write(itemString)
+with open("data/purchaces.csv", "w") as file:
+    itemLen = len(inventory_with_suppliers) - 1
+    file.write("item_id, item_name, buy_date, supplier_name, supplier_contact, amount, supplier_price,\n")
+    for x in range(random.randint(100,300)):
+        itemID = random.randint(0,itemLen)
+        item = f"{itemID}, {inventory_with_suppliers[itemID]["item"]}, {str(random.randint(1,12)) + "-" + str(random.randint(1,31)) + "-" + str(random.randint(2012, 2026))}, {inventory_with_suppliers[itemID]["supplier"]}, {inventory_with_suppliers[itemID]["contact"]}, {random.randint(10,100)}, {inventory_with_suppliers[itemID]["supplier_price"]},\n"
+        file.write(item)

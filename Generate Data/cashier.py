@@ -11,7 +11,7 @@ employee_info = [
      { "name": "Maya Williams", "phone": "832-555-0110", "hourly_pay": 12.50}
 ]
 
-with open("cashier.csv", "w") as file:
+with open("data/cashier.csv", "w") as file:
     file.write("id, name, phone, hourly_pay")
     for (id, employee) in enumerate(employee_info, start=1):
         file.write(f"\n{id}, {employee['name']}, {employee['phone']}, {employee['hourly_pay']}")

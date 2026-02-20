@@ -23,7 +23,7 @@ drinkVarieties = {
     "14": {"name": "Chocolate Milk", "amount": "2.00", "ice_level": "None", "traditional_boba": "False", "popping_boba": "False", "sweetness": "100", "milk": "Cow"}
 }
 
-with open("drink.csv", "w") as file:
+with open("data/drink.csv", "w") as file:
     file.write(header)
 
     for (id,drink) in drinkVarieties.items():

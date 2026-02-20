@@ -11,7 +11,7 @@ header = "drink_id, receipt_id\n"
 #25% chance two drinks
 #25% chance three drinks
 
-with open("drink_to_recipt.csv", "w") as file:
+with open("data/drink_to_recipt.csv", "w") as file:
     file.write(header)
 
     for i in range(0,100):
