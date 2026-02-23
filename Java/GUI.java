@@ -1,6 +1,10 @@
 
 import java.awt.event.*;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.*;
+import java.util.Properties;
 import javax.swing.*;
 
 public class GUI extends JFrame implements ActionListener {
@@ -10,11 +14,28 @@ public class GUI extends JFrame implements ActionListener {
     public static void main(String[] args) {
         //Building the connection
         Connection conn = null;
-        //TODO STEP 1 (see line 7)
-        String databaseName = "team_71_db";
-        String databaseUser = "team_71";
-        String databasePassword = "QayyumIsAB1tch";
-        String databaseUrl = String.format("jdbc:postgresql://csce-315-db.engr.tamu.edu/%s", databaseName);
+
+        Properties props = new Properties();
+        // Specify the path to your .env file
+        var envFile = Paths.get(".env").toAbsolutePath().toString();
+
+        try (FileInputStream inputStream = new FileInputStream(envFile)) {
+            props.load(inputStream);
+        } catch (IOException e) {
+            System.err.println("Error loading .env file: " + e.getMessage());
+            return;
+        }
+
+        String databaseName = props.getProperty("DATABASE_NAME");
+        System.out.println(databaseName);
+
+        String databaseUser = props.getProperty("DATABASE_USER");
+        System.out.println(databaseUser);
+
+        String databasePassword = props.getProperty("DATABASE_PASSWORD");
+        System.out.println(databasePassword);
+
+        String databaseUrl = String.format(props.getProperty("DATABASE_URL"), databaseName);
         try {
             conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
         } catch (Exception e) {
