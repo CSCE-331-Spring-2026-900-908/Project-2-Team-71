@@ -4,7 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.Properties;
+import java.util.Properties; //the properties object is used to load database credentials 
 import javax.swing.*;
 
 public class GUI extends JFrame implements ActionListener {
