@@ -35,7 +35,7 @@ public class GUI extends JFrame implements ActionListener {
         String databasePassword = props.getProperty("DATABASE_PASSWORD");
         System.out.println(databasePassword);
 
-        String databaseUrl = String.format(props.getProperty("DATABASE_URL"), databaseName);
+        String databaseUrl = String.format(props.getProperty("DATABASE_URL") + "%s", databaseName);
         try {
             conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
         } catch (Exception e) {
