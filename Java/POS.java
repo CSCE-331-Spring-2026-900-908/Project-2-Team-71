@@ -78,7 +78,7 @@ public class POS {
             while (result.next()) {
                 display += result.getString("name") + " " + result.getString("amount") + "\n";
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.exit(1);
         }
 
