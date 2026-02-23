@@ -27,15 +27,10 @@ public class GUI extends JFrame implements ActionListener {
         }
 
         String databaseName = props.getProperty("DATABASE_NAME");
-        System.out.println(databaseName);
-
         String databaseUser = props.getProperty("DATABASE_USER");
-        System.out.println(databaseUser);
-
         String databasePassword = props.getProperty("DATABASE_PASSWORD");
-        System.out.println(databasePassword);
-
         String databaseUrl = String.format(props.getProperty("DATABASE_URL") + "%s", databaseName);
+
         try {
             conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
         } catch (Exception e) {
