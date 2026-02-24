@@ -1,7 +1,6 @@
 
 import javax.swing.*;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.RowFilter;
@@ -14,6 +13,9 @@ import java.sql.*;
 import java.util.Properties;
 import java.util.List;
 import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.sql.Timestamp;
 
 public class PurchasesPanel extends JPanel {
 
@@ -364,25 +366,70 @@ public class PurchasesPanel extends JPanel {
 
     private void insertPurchase(int itemId, int amount, double price, String buyDate, String supplierName, String supplierContact) {
         try {
-            getConnection(); // ensure connection is open
-            String sql = "INSERT INTO purchaces (item_id, amount, supplier_price, buy_date, supplier_name, supplier_contact) VALUES (?, ?, ?, ?, ?, ?)";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setInt(1, itemId);
-            stmt.setInt(2, amount);
-            stmt.setDouble(3, price);
-            stmt.setString(4, buyDate);
-            stmt.setString(5, supplierName);
-            stmt.setString(6, supplierContact);
+            getConnection(); // open DB connection
 
-            int rows = stmt.executeUpdate();
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "Purchase added successfully!");
+            // Start transaction
+            conn.setAutoCommit(false);
+
+            // 1️⃣ Insert into purchaces table
+            String insertSql = """
+            INSERT INTO purchaces
+                (item_id, amount, supplier_price, buy_date, supplier_name, supplier_contact)
+                VALUES (?, ?, ?, ?, ?, ?)
+        """;
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                insertStmt.setInt(1, itemId);
+                insertStmt.setInt(2, amount);
+                insertStmt.setDouble(3, price);
+                LocalDate localDate = LocalDate.parse(buyDate); // "YYYY-MM-DD"
+                LocalDateTime localDateTime = localDate.atStartOfDay(); // 00:00 time
+                Timestamp timestamp = Timestamp.valueOf(localDateTime);
+                insertStmt.setTimestamp(4, timestamp);
+                insertStmt.setString(5, supplierName);
+                insertStmt.setString(6, supplierContact);
+                insertStmt.executeUpdate();
             }
 
-            stmt.close();
-            conn.close();
+            // FIXME There is an error in this function
+            // 2️⃣ Update inventory table
+            String updateInventorySql = """
+            UPDATE inventory
+            SET amount = amount + ?
+            WHERE id = ?
+        """;
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateInventorySql)) {
+                updateStmt.setInt(1, amount);
+                updateStmt.setInt(2, itemId);
+                int rows = updateStmt.executeUpdate();
+
+                // Optional: if inventory item doesn't exist, alert user
+                if (rows == 0) {
+                    JOptionPane.showMessageDialog(this, "Warning: Inventory item not found. Purchase added but inventory not updated.", "Inventory Missing", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+
+            // Commit transaction
+            conn.commit();
+            conn.setAutoCommit(true);
+
+            JOptionPane.showMessageDialog(this, "Purchase added and inventory updated successfully!");
+            loadTableData();
+            updateOverallSummary();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error adding purchase: " + e.getMessage());
+            try {
+                conn.rollback(); // rollback if any error
+            } catch (SQLException ex) {
+                System.err.println("Rollback failed: " + ex.getMessage());
+            }
+            JOptionPane.showMessageDialog(this, "Error adding purchase: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            try {
+                if (conn != null && !conn.isClosed()) {
+                    conn.close();
+                }
+            } catch (SQLException ex) {
+                System.err.println("Error closing connection: " + ex.getMessage());
+            }
         }
     }
 }
