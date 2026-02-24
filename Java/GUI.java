@@ -10,7 +10,7 @@ public class GUI extends JFrame {
     public GUI() {
         setTitle("DB GUI");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, 400);
+        setSize(1200, 900);
 
         // Initialize layout
         cardLayout = new CardLayout();
