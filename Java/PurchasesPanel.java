@@ -39,23 +39,32 @@ public class PurchasesPanel extends JPanel {
         }
     }
 
-    private static void CloseConnection() {
-        //closing the connection
-        try {
-            conn.close();
-            JOptionPane.showMessageDialog(null, "Connection Closed.");
-        } catch (HeadlessException | SQLException e) {
-            JOptionPane.showMessageDialog(null, "Connection NOT Closed.");
-        }
-    }
-
-    private static ResultSet GetInventory() {
+    // private static void CloseConnection() {
+    //     //closing the connection
+    //     try {
+    //         conn.close();
+    //         JOptionPane.showMessageDialog(null, "Connection Closed.");
+    //     } catch (HeadlessException | SQLException e) {
+    //         JOptionPane.showMessageDialog(null, "Connection NOT Closed.");
+    //     }
+    // }
+    private static ResultSet GetPurchaces() {
+        GetConnection();
         try {
             //create a statement object
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = "SELECT * FROM inventory";
+            String sqlStatement = """
+            select 
+            i.name, p.amount, p.supplier_price, p.buy_date, p.supplier_name, p.supplier_contact 
+            from 
+                purchaces as p 
+            join 
+                inventory as i 
+            on 
+                p.item_id = i.id;
+            """;
 
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
@@ -71,20 +80,51 @@ public class PurchasesPanel extends JPanel {
 
         setLayout(new BorderLayout());
 
-        // Top bar
+        // ===== Top Bar =====
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         JButton backButton = new JButton("Back");
         backButton.addActionListener(e -> gui.showScreen("MAIN"));
 
         topBar.add(backButton);
-
         add(topBar, BorderLayout.NORTH);
 
-        // Main content
-        JTextArea textArea = new JTextArea("Purchases Screen");
-        textArea.setEditable(false);
+        // ===== Table Setup =====
+        String[] columns = {
+            "Item Name",
+            "Amount",
+            "Supplier Price",
+            "Buy Date",
+            "Supplier Name",
+            "Supplier Contact"
+        };
 
-        add(new JScrollPane(textArea), BorderLayout.CENTER);
+        javax.swing.table.DefaultTableModel model
+                = new javax.swing.table.DefaultTableModel(columns, 0);
+
+        JTable table = new JTable(model);
+        table.setFillsViewportHeight(true);
+
+        // ===== Load Data =====
+        ResultSet result = GetPurchaces();
+
+        try {
+            while (result != null && result.next()) {
+                Object[] row = {
+                    result.getString("name"),
+                    result.getInt("amount"),
+                    result.getDouble("supplier_price"),
+                    result.getDate("buy_date"),
+                    result.getString("supplier_name"),
+                    result.getString("supplier_contact")
+                };
+                model.addRow(row);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
     }
 }
