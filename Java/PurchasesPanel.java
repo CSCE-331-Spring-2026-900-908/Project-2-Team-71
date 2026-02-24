@@ -57,7 +57,10 @@ public class PurchasesPanel extends JPanel {
             //create a SQL statement
             String sqlStatement = """
             select 
-            i.name, p.amount, p.supplier_price, p.buy_date, p.supplier_name, p.supplier_contact 
+                i.name,
+                p.amount,
+                p.supplier_price,
+                p.buy_date 
             from 
                 purchaces as p 
             join 
@@ -94,10 +97,7 @@ public class PurchasesPanel extends JPanel {
             "Item Name",
             "Amount",
             "Supplier Price",
-            "Buy Date",
-            "Supplier Name",
-            "Supplier Contact"
-        };
+            "Buy Date",};
 
         javax.swing.table.DefaultTableModel model
                 = new javax.swing.table.DefaultTableModel(columns, 0);
@@ -114,10 +114,7 @@ public class PurchasesPanel extends JPanel {
                     result.getString("name"),
                     result.getInt("amount"),
                     result.getDouble("supplier_price"),
-                    result.getDate("buy_date"),
-                    result.getString("supplier_name"),
-                    result.getString("supplier_contact")
-                };
+                    result.getDate("buy_date"),};
                 model.addRow(row);
             }
         } catch (SQLException e) {
