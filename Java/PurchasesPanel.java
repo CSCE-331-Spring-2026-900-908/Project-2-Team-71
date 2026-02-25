@@ -285,7 +285,7 @@ public class PurchasesPanel extends JPanel {
             Statement stmt = conn.createStatement();
             String sql = """
                     SELECT i.name, p.amount, p.supplier_price, p.buy_date, p.supplier_name, p.supplier_contact
-                    FROM purchaces p
+                    FROM purchase p
                     JOIN inventory i ON p.item_id = i.id;
                     """;
             return stmt.executeQuery(sql);
@@ -371,9 +371,9 @@ public class PurchasesPanel extends JPanel {
             // Start transaction
             conn.setAutoCommit(false);
 
-            // 1️⃣ Insert into purchaces table
+            // 1️⃣ Insert into purchases table
             String insertSql = """
-            INSERT INTO purchaces
+            INSERT INTO purchase
                 (item_id, amount, supplier_price, buy_date, supplier_name, supplier_contact)
                 VALUES (?, ?, ?, ?, ?, ?)
         """;
