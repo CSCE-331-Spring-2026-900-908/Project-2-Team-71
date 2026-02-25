@@ -1,40 +1,45 @@
-
-import java.awt.event.*;
+import java.awt.*;
 import javax.swing.*;
 
-public class GUI extends JFrame implements ActionListener {
+public class GUI extends JFrame {
 
-    static JFrame frame;
+    private final CardLayout cardLayout;
+    private final JPanel container;
 
-    public static void main(String[] args) {
+    public GUI() {
+        setTitle("DB GUI");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1200, 900);
 
-        frame = new JFrame("DB GUI");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Initialize layout
+        cardLayout = new CardLayout();
+        container = new JPanel(cardLayout);
 
-        // create a object
-        GUI screen = new GUI();
+        // Create screens
+        MainMenuPanel menuPanel = new MainMenuPanel(this);
+        InventoryPanel inventoryPanel = new InventoryPanel(this);
+        PurchasesPanel purchasesPanel = new PurchasesPanel(this);
+        TransactionsPanel transactionsPanel = new TransactionsPanel(this);
+        POSScreen posScreen = new POSScreen(this);
 
-        JPanel panel = POS.ShowGUI(screen);
+        // Add screens to container
+        container.add(menuPanel, "MAIN");
+        container.add(purchasesPanel, "Purchases");
+        container.add(transactionsPanel, "Transaction");
+        container.add(inventoryPanel, "Inventory");
+        container.add(posScreen, "POS");
 
-        JButton button = new JButton("Close");
+        add(container);
 
-        button.addActionListener(screen);
-        panel.add(button);
-
-        // add panel to frame
-        frame.add(panel);
-        // set the size of frame
-        frame.setSize(400, 400);
-
-        frame.setVisible(true);
+        setLocationRelativeTo(null); // center window
+        setVisible(true);
     }
 
-    // if button is pressed
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String s = e.getActionCommand();
-        if (s.equals("Close")) {
-            frame.removeAll();
-        }
+    public void showScreen(String name) {
+        cardLayout.show(container, name);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(GUI::new);
     }
 }
