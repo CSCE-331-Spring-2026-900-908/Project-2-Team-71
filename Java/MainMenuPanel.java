@@ -1,6 +1,11 @@
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
+
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
 public class MainMenuPanel extends JPanel {
 
@@ -11,24 +16,11 @@ public class MainMenuPanel extends JPanel {
         JLabel title = new JLabel("Main Menu", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 24));
 
+        JButton openTrends = new JButton("Open Trends");
+        openTrends.addActionListener(e -> gui.showScreen("TRENDS"));
+
         JPanel centerPanel = new JPanel();
-
-        JButton openInventory = new JButton("Open Inventory");
-        openInventory.addActionListener(e -> gui.showScreen("Inventory"));
-
-        JButton openPurchases = new JButton("Open Purchases");
-        openPurchases.addActionListener(e -> gui.showScreen("Purchases"));
-
-        JButton openPOS = new JButton("Open POS");
-        openPOS.addActionListener(e -> gui.showScreen("POS"));
-
-        JButton openTransaction = new JButton("Open Transaction");
-        openTransaction.addActionListener(e -> gui.showScreen("Transaction"));
-
-        centerPanel.add(openPOS);
-        centerPanel.add(openInventory);
-        centerPanel.add(openPurchases);
-        centerPanel.add(openTransaction);
+        centerPanel.add(openTrends);
 
         add(title, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);

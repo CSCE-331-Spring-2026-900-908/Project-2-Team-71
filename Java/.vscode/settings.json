@@ -1,0 +1,9 @@
+{
+  "java.project.referencedLibraries": [
+    "lib/**/*.jar",
+    "postgresql-42.2.8.jar",
+    "jfreechart-1.5.6/**/*.jar",
+    "jfreechart-1.0.1/lib/jcommon-1.0.0.jar",
+    "jfreechart-1.0.1/lib/jfreechart-1.0.1.jar"
+  ]
+}
