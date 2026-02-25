@@ -14,7 +14,11 @@ public class MainMenuPanel extends JPanel {
         JButton openPurchases = new JButton("Open Purchases");
         openPurchases.addActionListener(e -> gui.showScreen("Purchases"));
 
+        JButton openPOS = new JButton("Open POS");
+        openPOS.addActionListener(e -> gui.showScreen("POS"));
+
         JPanel centerPanel = new JPanel();
+        centerPanel.add(openPOS);
         centerPanel.add(openPurchases);
 
         add(title, BorderLayout.NORTH);

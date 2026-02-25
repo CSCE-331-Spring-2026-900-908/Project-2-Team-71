@@ -23,6 +23,9 @@ public class GUI extends JFrame {
         // Add screens to container
         container.add(menuPanel, "MAIN");
         container.add(purchasesPanel, "Purchases");
+//        PanelTemplate template = new PanelTemplate(this);
+        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
+        container.add(posScreen, "POS");
 
         add(container);
 
@@ -30,7 +33,6 @@ public class GUI extends JFrame {
         setVisible(true);
     }
 
-    // Method to switch screens
     public void showScreen(String name) {
         cardLayout.show(container, name);
     }
