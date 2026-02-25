@@ -297,6 +297,66 @@ public class POSScreen extends JPanel {
         return panel;
     }
 
+    private void insertReceiptRow(double totalPrice) {
+        ensureConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "No DB connection.");
+            return;
+        }
+
+        // customer id from the UI label (default to 0 if not selected)
+        int customerId = 0;
+        String custText = (idValue == null) ? "-" : idValue.getText().trim();
+        if (!custText.equals("-") && custText.matches("\\d+")) {
+            customerId = Integer.parseInt(custText);
+        }
+
+        // cashier id: if you added cashier sign-in fields, use that; otherwise default 0
+        int cashierIdToUse = 0;
+        // If you have `private Integer cashierId;` in POSScreen, uncomment next 2 lines:
+        // if (cashierId != null) cashierIdToUse = cashierId;
+        // else cashierIdToUse = 0;
+
+        try {
+            conn.setAutoCommit(false);
+
+            // Prevent overlapping receipt_id when multiple checkouts happen
+            try (Statement lockStmt = conn.createStatement()) {
+                lockStmt.execute("LOCK TABLE receipt IN EXCLUSIVE MODE");
+            }
+
+            long nextId;
+            try (Statement s = conn.createStatement();
+                ResultSet rs = s.executeQuery("SELECT COALESCE(MAX(receipt_id), 0) + 1 AS next_id FROM receipt")) {
+                rs.next();
+                nextId = rs.getLong("next_id");
+            }
+
+            String insertSql =
+                    "INSERT INTO receipt (receipt_id, purchase_date, total_price, customer_id, cashier_id) " +
+                    "VALUES (?, CURRENT_DATE, ?, ?, ?)";
+
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setLong(1, nextId);
+                ps.setDouble(2, totalPrice);
+                ps.setInt(3, customerId);
+                ps.setInt(4, cashierIdToUse);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            conn.setAutoCommit(true);
+
+            // Optional: show the generated receipt id
+            // JOptionPane.showMessageDialog(this, "Receipt saved. ID: " + nextId);
+
+        } catch (SQLException ex) {
+            try { conn.rollback(); } catch (SQLException ignored) {}
+            try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            JOptionPane.showMessageDialog(this, "Receipt insert failed: " + ex.getMessage());
+        }
+    }
+
     private void setCashierFromId() {
         String text = cashierIdField.getText().trim();
 
@@ -365,6 +425,7 @@ public class POSScreen extends JPanel {
         JOptionPane.showMessageDialog(this,
                 "Tap card now.\nTotal: " + totalLabel.getText());
 
+        insertReceiptRow(total); //inser into sql
         // Clear cart after payment
         cartModel.setRowCount(0);
         total = 0.0;
