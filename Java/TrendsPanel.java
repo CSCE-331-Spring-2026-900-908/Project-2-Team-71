@@ -1,6 +1,5 @@
 
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -15,6 +14,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
 import org.jfree.data.general.DefaultPieDataset;
 
 
@@ -34,17 +36,27 @@ public class TrendsPanel extends JPanel {
 
         JPanel trends = new JPanel();
         trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
-        trends.setLayout(new GridLayout(2,2));
+        //trends.setLayout(new GridLayout(2,2));
 
-        add(trends, BorderLayout.CENTER);
+        
         
         // add four different graphs
 
         // Pie chart for showing most popular drinks
         ResultSet orderCount = GetDrinksAndFoodCount();
-
         DefaultPieDataset orderDefaultPieDataset = loadOrderData(orderCount);
 
+        JFreeChart ordersPiChart = ChartFactory.createPieChart(
+            "All Time Sales Per Item", // Title
+            orderDefaultPieDataset, // Dataset
+            true, // Legend?
+            true, // Tooltip?
+            false // URLS?
+        );
+
+        ChartPanel piChart = new ChartPanel(ordersPiChart);
+        trends.add(piChart);
+        add(trends, BorderLayout.CENTER);
 
 
 
