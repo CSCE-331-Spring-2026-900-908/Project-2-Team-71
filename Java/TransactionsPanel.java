@@ -8,7 +8,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
-public class Transactions extends JPanel {
+public class TransactionsPanel extends JPanel {
 
     // ===================== CONFIG SECTION =====================
     private static final String PANEL_TITLE = "Transactions";
@@ -37,7 +37,7 @@ public class Transactions extends JPanel {
     private JLabel pointsLabel;
     private JTextArea receiptArea;
 
-    public Transactions(GUI gui) {
+    public TransactionsPanel(GUI gui) {
         this.gui = gui;
         setLayout(new BorderLayout());
 
