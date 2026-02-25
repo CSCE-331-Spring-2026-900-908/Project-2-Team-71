@@ -99,7 +99,6 @@ public class TrendsPanel extends JPanel {
         );
 
         ChartPanel piChart = new ChartPanel(ordersPiChart);
-
         return piChart;
     }
 
@@ -134,7 +133,6 @@ public class TrendsPanel extends JPanel {
         );
 
         ChartPanel barChart = new ChartPanel(revenueBarChart);
-
         return barChart;
     }
 
@@ -143,7 +141,21 @@ public class TrendsPanel extends JPanel {
         ResultSet receiptData = GetReceipts();
         DefaultCategoryDataset receiptDataset = LoadReceiptData(receiptData);
 
+        // Create the line chart
+        JFreeChart receiptLineChart = ChartFactory.createLineChart(
+            "Monthly Receipt Count", 
+            "Month",
+            "Receipts", 
+            receiptDataset,
+            PlotOrientation.VERTICAL,
+            false, // Legend?
+            true, // Tooltips?
+            false // urls?
+        );
 
+        // Convert chart into a panel and return!
+        ChartPanel lineChart = new ChartPanel(receiptLineChart);
+        return lineChart;
     }
 
     private static void GetConnection() {
