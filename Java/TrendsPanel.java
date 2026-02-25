@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 
@@ -26,7 +27,7 @@ import org.jfree.data.general.DefaultPieDataset;
 
 public class TrendsPanel extends JPanel {
 
-    private GUI gui;
+    //private GUI gui;
     private static Connection conn;
 
     public static JPanel ShowGUI(GUI gui) {
@@ -59,13 +60,12 @@ public class TrendsPanel extends JPanel {
         trends.add(piChart);
 
 
-        /* 
         // Bar chart for showing monthly revenue
-        ResultSet revenueData = GetRevenue();
-        DefaultCategoryDataset revenueDataset = loadRevenueData(revenueData);
+        ResultSet incomeData = GetIncome();
+        DefaultCategoryDataset incomeDataset = loadIncomeData(incomeData);
 
         // Create combination bar plot. One bar will be expenses and other on top will be revenue.
-        CategoryPlot revenuePlot = new CategoryPlot();
+        CategoryPlot incomePlot = new CategoryPlot();
         // TODO
 
         JFreeChart revenueBarGraph = new JFreeChart(
@@ -84,7 +84,7 @@ public class TrendsPanel extends JPanel {
 
         //JFreeChart revenueChart = ChartFactory.createBarChart();
         
-        */
+        
         
         
         return trends;
@@ -162,7 +162,8 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetRevenue() {
+    private static ResultSet GetIncome() {
+        // finds total income from sales for each month
         try {
             getConnection();
 
@@ -170,8 +171,23 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = "SELECT * FROM inventory";
-
+            String sqlStatement = """
+                SELECT SUM(sale) AS income, month
+                FROM (
+                    SELECT drink.price AS sale, DATE_PART('month', receipt.purchase_date) AS month 
+                    FROM ((drink
+                    INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id)
+                    INNER JOIN receipt ON receipt.id = drink_to_receipt.receipt_id)
+                    UNION ALL
+                    SELECT food.price AS sale, DATE_PART('month',receipt.purchase_date) AS month 
+                    FROM ((food
+                    INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id)
+                    INNER JOIN receipt ON receipt.id = food_to_receipt.receipt_id)
+                )
+                GROUP BY month
+                ORDER BY month ASC;
+            """;
+            
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
 
@@ -199,7 +215,7 @@ public class TrendsPanel extends JPanel {
         return orderPiGraphData;
     }
 
-    private static DefaultCategoryDataset loadRevenueData(ResultSet revenueData) {
+    private static DefaultCategoryDataset loadIncomeData(ResultSet revenueData) {
         // create dataset for bar graph
         DefaultCategoryDataset revenueDataset = new DefaultCategoryDataset();
 
