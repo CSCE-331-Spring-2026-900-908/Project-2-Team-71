@@ -23,6 +23,17 @@ public class POSScreen extends JPanel {
     private JLabel phoneValue;
     private JLabel pointsValue;
 
+    // cashier sign-in (not a login)
+    private JTextField cashierIdField;
+    private JButton cashierSetButton;
+    private JLabel cashierStatusLabel;
+
+    //mani meun button
+    private JButton returnToMainButton;
+
+    private Integer cashierId = null;
+    private String cashierName = null;
+
     public POSScreen(GUI gui) {
         this.gui = gui;
         getConnection();
@@ -61,6 +72,18 @@ public class POSScreen extends JPanel {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
+
+    /////////////  db connection  /////////////////////////////////////////////////////////
+    private void ensureConnection() {
+    try {
+        if (conn == null || conn.isClosed()) {
+            getConnection();
+        }
+    } catch (SQLException e) {
+        getConnection();
+    }
+}
+    /////////////////////////////////////////////////////////////////////////////////////////
 
     /////////  top left cusomer look up  //////////////////////////////////////////////////
     private JComponent buildLeftPanel() {
@@ -131,7 +154,7 @@ public class POSScreen extends JPanel {
             return;
         }
 
-        getConnection();
+        ensureConnection();
 
         if (conn != null) {
             System.err.println("WORK");
@@ -231,13 +254,92 @@ public class POSScreen extends JPanel {
         panel.add(Box.createVerticalStrut(10));
         panel.add(checkoutButton);
 
+        /////// chashie login///////
+        panel.add(Box.createVerticalStrut(10));
+
+        JPanel cashierRow = new JPanel(new BorderLayout(5, 5));
+        cashierIdField = new JTextField();
+        cashierSetButton = new JButton("Set");
+
+        cashierRow.add(new JLabel("Cashier ID:"), BorderLayout.WEST);
+        cashierRow.add(cashierIdField, BorderLayout.CENTER);
+        cashierRow.add(cashierSetButton, BorderLayout.EAST);
+
+        cashierStatusLabel = new JLabel("Cashier: (not set)");
+        cashierStatusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        panel.add(cashierRow);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(cashierStatusLabel);
+
+        // Enter key or button click
+        cashierSetButton.addActionListener(e -> setCashierFromId());
+        cashierIdField.addActionListener(e -> setCashierFromId());
+        /////////////////////
+        
+        //////////// main meu button /////
+        panel.add(Box.createVerticalStrut(10));
+
+        returnToMainButton = new JButton("Return to Main Menu");
+        returnToMainButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        returnToMainButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        panel.add(returnToMainButton);
+        // Action
+        returnToMainButton.addActionListener(e -> {
+            cartModel.setRowCount(0);
+            total = 0.0;
+            updateTotalLabel();
+            gui.showScreen("MAIN");
+        });
+        ///////////////////////////////////
+
         return panel;
     }
 
+    private void setCashierFromId() {
+        String text = cashierIdField.getText().trim();
+
+        if (!text.matches("\\d+")) {
+            cashierId = null;
+            cashierName = null;
+            cashierStatusLabel.setText("Invalid cashier ID");
+            JOptionPane.showMessageDialog(this, "Invalid cashier ID (must be a number).");
+            return;
+        }
+
+        int id = Integer.parseInt(text);
+
+        ensureConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "No DB connection.");
+            return;
+        }
+
+        String sql = "SELECT id, name FROM cashiers WHERE id = ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    cashierId = rs.getInt("id");
+                    cashierName = rs.getString("name");
+                    cashierStatusLabel.setText("Cashier: " + cashierName + " (ID " + cashierId + ")");
+                } else {
+                    cashierId = null;
+                    cashierName = null;
+                    cashierStatusLabel.setText("Invalid cashier ID");
+                    JOptionPane.showMessageDialog(this, "No cashier found with ID " + id);
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Cashier lookup error: " + ex.getMessage());
+        }
+    }
+
     public void addToCart(String itemName, double price) {
-        cartModel.addRow(new Object[]{itemName, String.format("$%.2f", price)});
-        total += price;
-        updateTotalLabel();
+        addToCart(itemName, "-", price);
     }
 
     public void addToCart(String itemName, String options, double price) {
@@ -328,9 +430,6 @@ public class POSScreen extends JPanel {
         searchButton.addActionListener(e -> searchMenu());
         searchField.addActionListener(e -> searchMenu()); // Enter key
 
-        // test item
-        resultsModel.addRow(new Object[]{"Drink", 999, "TEST ITEM", "$1.23", "Add"});
-
         return right;
     }
 
@@ -340,7 +439,7 @@ public class POSScreen extends JPanel {
             return;
         }
 
-        getConnection();
+        ensureConnection();
 
         if (conn == null) {
             JOptionPane.showMessageDialog(this, "No DB connection.");
@@ -400,6 +499,30 @@ public class POSScreen extends JPanel {
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Search error: " + ex.getMessage());
         }
+    }
+
+    private double getDrinkBasePrice(String drinkName) {
+        ensureConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "No DB connection.");
+            return 0.0;
+        }
+
+        String sql = "SELECT price FROM drinks WHERE name = ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, drinkName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble("price");
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Price lookup error: " + ex.getMessage());
+        }
+
+        JOptionPane.showMessageDialog(this, "No price found for: " + drinkName);
+        return 0.0;
     }
 
     private class ButtonRenderer extends JButton implements TableCellRenderer {
@@ -522,7 +645,7 @@ public class POSScreen extends JPanel {
                     popping ? "Yes" : "No"
             );
 
-            double basePrice = 7.50; // TEMP until you pull from drinks DB
+            double basePrice = getDrinkBasePrice(drinkName);
             double finalPrice = basePrice
                     + (boba ? 0.50 : 0.0)
                     + (popping ? 0.75 : 0.0);
