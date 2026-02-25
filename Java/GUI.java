@@ -18,20 +18,19 @@ public class GUI extends JFrame {
 
         // Create screens
         MainMenuPanel menuPanel = new MainMenuPanel(this);
-//        PanelTemplate template = new PanelTemplate(this);
-        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
+        PurchasesPanel purchasesPanel = new PurchasesPanel(this); // your existing POS screen
 
         // Add screens to container
         container.add(menuPanel, "MAIN");
-//        container.add(template, "TEMP");
+        container.add(purchasesPanel, "Purchases");
+//        PanelTemplate template = new PanelTemplate(this);
+        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
         container.add(posScreen, "POS");
 
         add(container);
 
         setLocationRelativeTo(null); // center window
         setVisible(true);
-
-        showScreen("POS"); // open to the POS page
     }
 
     public void showScreen(String name) {
