@@ -1,5 +1,3 @@
-
-import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -35,33 +34,52 @@ public class TrendsPanel extends JPanel {
 
     public TrendsPanel(GUI gui) {
         //this.gui = gui;
-        setLayout(new BorderLayout());
 
-        // Create panel to view graphs
+        //add scroll panel
+        
+        
+        
+        //GridBagConstraints constraints = new GridBagConstraints();
 
-        //JPanel trends = new JPanel();
-        //trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
-        setLayout(new GridLayout(2, 2, 20, 20));
+        // Create button to navigate back to main menu
+        JButton openMain = new JButton("Main Menu");
+        openMain.addActionListener(e -> gui.showScreen("MAIN"));
+        
+        //constraints.anchor = GridBagConstraints.FIRST_LINE_START;
+        //constraints.weightx = 0.5;
+        //constraints.fill = GridBagConstraints.HORIZONTAL;
+        //constraints.gridx = 0;
+        //constraints.gridy = 0;
+
+
+        add(openMain);
 
 
         // add four different graphs //
+        JPanel graphPanel = new JPanel();
+        //JScrollBar scrollPane = new JScrollBar();
+        //graphPanel.add(scrollPane);
 
+        //graphPanel.add(scrollPane);
+        graphPanel.setLayout(new GridLayout(2,2, 2,2));
 
         // Pie chart for showing most popular drinks
         ChartPanel piChart = SetUpPiChart();
-        add(piChart);
+        graphPanel.add(piChart);
 
         // Bar chart for showing monthly revenue
         ChartPanel barChart = SetUpBarChart();
-        add(barChart);
+        graphPanel.add(barChart);
 
         // line chart to show monthly number of sales
         ChartPanel lineChart = SetUpLineChart();
-        add(lineChart);
+        graphPanel.add(lineChart);
 
         // Show busy time trends
         ChartPanel timeChart = SetUpTimeChart();
-        add(timeChart);
+        graphPanel.add(timeChart);
+
+        add(graphPanel);
     }
 
 
