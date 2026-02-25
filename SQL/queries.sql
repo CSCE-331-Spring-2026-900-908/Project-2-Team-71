@@ -53,3 +53,32 @@ select * from inventory;
 select * from receipt as r left join food_to_receipt as ftr on r.id = ftr.receipt_id
 -- Query 11
 select * from receipt as r left join drink_to_receipt as dtr on r.id = dtr.receipt_id
+
+CREATE OR REPLACE VIEW transactions AS
+SELECT 
+    r.id,
+    c.name AS customer_name,
+    COALESCE(SUM(item_totals.price), 0) AS total_price
+FROM receipt r
+LEFT JOIN customer c ON r.customer_id = c.id
+
+LEFT JOIN (
+    -- Food totals
+    SELECT 
+        ftr.receipt_id,
+        f.price * ftr.quantity as price
+    FROM food_to_receipt ftr
+    JOIN food f ON ftr.food_id = f.id
+
+    UNION ALL
+
+    -- Drink totals
+    SELECT 
+        dtr.receipt_id,
+        d.price * dtr.quantity as price
+    FROM drink_to_receipt dtr
+    JOIN drink d ON dtr.drink_id = d.id
+) AS item_totals
+ON r.id = item_totals.receipt_id
+
+GROUP BY r.id, c.name;
