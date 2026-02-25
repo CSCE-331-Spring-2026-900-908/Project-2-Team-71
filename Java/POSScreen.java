@@ -192,6 +192,10 @@ public class POSScreen extends JPanel {
         panel.add(Box.createVerticalStrut(10));
         panel.add(checkoutButton);
 
+        JLabel cashierLabel = new JLabel("Cashier: " + gui.getCashierName() + " (ID " + gui.getCashierId() + ")");
+        cashierLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(cashierLabel);
+
         return panel;
     }
     public void addToCart(String itemName, double price) {
