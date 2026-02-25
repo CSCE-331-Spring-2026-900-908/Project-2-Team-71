@@ -21,20 +21,15 @@ public class TrendsPanel extends JPanel {
     private static Connection conn;
 
 
-    private static void GetConnection() {
-        //Building the connection
+    private static void getConnection() {
         Properties props = new Properties();
-
-        // Specify the path to your .env file
         var envFile = Paths.get(".env").toAbsolutePath().toString();
-
         try (FileInputStream inputStream = new FileInputStream(envFile)) {
             props.load(inputStream);
         } catch (IOException e) {
             System.err.println("Error loading .env file: " + e.getMessage());
             return;
         }
-
         String databaseName = props.getProperty("DATABASE_NAME");
         String databaseUser = props.getProperty("DATABASE_USER");
         String databasePassword = props.getProperty("DATABASE_PASSWORD");
