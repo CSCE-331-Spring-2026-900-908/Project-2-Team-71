@@ -75,14 +75,15 @@ public class POSScreen extends JPanel {
 
     /////////////  db connection  /////////////////////////////////////////////////////////
     private void ensureConnection() {
-    try {
-        if (conn == null || conn.isClosed()) {
+        try {
+            if (conn == null || conn.isClosed()) {
+                getConnection();
+            }
+        } catch (SQLException e) {
             getConnection();
         }
-    } catch (SQLException e) {
-        getConnection();
     }
-}
+
     /////////////////////////////////////////////////////////////////////////////////////////
 
     /////////  top left cusomer look up  //////////////////////////////////////////////////
@@ -218,7 +219,9 @@ public class POSScreen extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Order"));
 
-        cartModel = new DefaultTableModel(new Object[]{"Item", "Options", "Price"}, 0) {
+        cartModel = new DefaultTableModel(
+                new Object[]{"Type", "Item ID", "Item", "Options", "Price"}, 0
+        ) {
             @Override
             public boolean isCellEditable(int r, int c) {
                 return false;
@@ -297,7 +300,21 @@ public class POSScreen extends JPanel {
         return panel;
     }
 
-    private void insertReceiptRow(double totalPrice) {
+    public void addToCartWithId(String type, int id, String itemName, String options, double price) {
+
+        cartModel.addRow(new Object[]{
+            type,
+            id,
+            itemName,
+            options,
+            String.format("$%.2f", price)
+        });
+
+        total += price;
+        updateTotalLabel();
+    }
+
+    private void insertReceiptRow() {
         ensureConnection();
         if (conn == null) {
             JOptionPane.showMessageDialog(this, "No DB connection.");
@@ -325,22 +342,13 @@ public class POSScreen extends JPanel {
                 lockStmt.execute("LOCK TABLE receipt IN EXCLUSIVE MODE");
             }
 
-            long nextId;
-            try (Statement s = conn.createStatement();
-                ResultSet rs = s.executeQuery("SELECT COALESCE(MAX(receipt_id), 0) + 1 AS next_id FROM receipt")) {
-                rs.next();
-                nextId = rs.getLong("next_id");
-            }
-
-            String insertSql =
-                    "INSERT INTO receipt (receipt_id, purchase_date, total_price, customer_id, cashier_id) " +
-                    "VALUES (?, CURRENT_DATE, ?, ?, ?)";
+            String insertSql
+                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id) "
+                    + "VALUES (CURRENT_DATE, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                ps.setLong(1, nextId);
-                ps.setDouble(2, totalPrice);
-                ps.setInt(3, customerId);
-                ps.setInt(4, cashierIdToUse);
+                ps.setInt(1, customerId);
+                ps.setInt(2, cashierIdToUse);
                 ps.executeUpdate();
             }
 
@@ -349,10 +357,15 @@ public class POSScreen extends JPanel {
 
             // Optional: show the generated receipt id
             // JOptionPane.showMessageDialog(this, "Receipt saved. ID: " + nextId);
-
         } catch (SQLException ex) {
-            try { conn.rollback(); } catch (SQLException ignored) {}
-            try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            try {
+                conn.rollback();
+            } catch (SQLException ignored) {
+            }
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException ignored) {
+            }
             JOptionPane.showMessageDialog(this, "Receipt insert failed: " + ex.getMessage());
         }
     }
@@ -376,7 +389,7 @@ public class POSScreen extends JPanel {
             return;
         }
 
-        String sql = "SELECT id, name FROM cashiers WHERE id = ? LIMIT 1";
+        String sql = "SELECT id, name FROM cashier WHERE id = ? LIMIT 1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -425,7 +438,7 @@ public class POSScreen extends JPanel {
         JOptionPane.showMessageDialog(this,
                 "Tap card now.\nTotal: " + totalLabel.getText());
 
-        insertReceiptRow(total); //inser into sql
+        insertReceiptRow(); //inser into sql
         // Clear cart after payment
         cartModel.setRowCount(0);
         total = 0.0;
@@ -513,7 +526,7 @@ public class POSScreen extends JPanel {
 
         // --- Change these table names if yours are different ---
         String sqlById = """
-            SELECT 'Drink' AS type, id, name, price FROM drinks WHERE id = ?
+            SELECT 'Drink' AS type, id, name, price FROM drink WHERE id = ?
             UNION ALL
             SELECT 'Food'  AS type, id, name, price FROM food   WHERE id = ?
             ORDER BY type, name
@@ -521,7 +534,7 @@ public class POSScreen extends JPanel {
         """;
 
         String sqlByName = """
-            SELECT 'Drink' AS type, id, name, price FROM drinks WHERE name ILIKE ?
+            SELECT 'Drink' AS type, id, name, price FROM drink WHERE name ILIKE ?
             UNION ALL
             SELECT 'Food'  AS type, id, name, price FROM food   WHERE name ILIKE ?
             ORDER BY type, name
@@ -569,14 +582,13 @@ public class POSScreen extends JPanel {
             return 0.0;
         }
 
-        String sql = "SELECT price FROM drinks WHERE name = ? LIMIT 1";
+        String sql = "SELECT price FROM drink WHERE name = ? LIMIT 1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, drinkName);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getDouble("price");
-                }
+                rs.next();
+                return rs.getDouble("price");
             }
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Price lookup error: " + ex.getMessage());
@@ -641,30 +653,47 @@ public class POSScreen extends JPanel {
 
     /////////////////////////////////// top right drink icons ///////////////////////////////
     private JComponent buildDrinkGrid() {
-        JPanel grid = new JPanel(new GridLayout(3, 4, 10, 10));
+
+        JPanel grid = new JPanel(new GridLayout(0, 3, 10, 10));
         grid.setBorder(BorderFactory.createTitledBorder("Drinks"));
 
-        String[] drinks = {
-            "Black Milk Tea",
-            "Green Milk Tea",
-            "Taro Milk Tea",
-            "Thai Tea",
-            "Matcha Milk Tea",
-            "Oolong Milk Tea"
-        };
+        ensureConnection();
+        if (conn == null) {
+            grid.add(new JLabel("No DB connection"));
+            return grid;
+        }
 
-        for (String drinkName : drinks) {
-            JButton btn = new JButton("<html><center>" + drinkName + "</center></html>");
-            btn.setPreferredSize(new Dimension(150, 100)); // makes it box-like
-            btn.addActionListener(e -> openCustomizeDialog(drinkName));
-            grid.add(btn);
+        String sql = "SELECT id, name, price FROM drink ORDER BY name";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                int drinkId = rs.getInt("id");
+                String drinkName = rs.getString("name");
+                double price = rs.getDouble("price");
+
+                JButton btn = new JButton(
+                        "<html><center>" + drinkName + "<br>$" + String.format("%.2f", price) + "</center></html>"
+                );
+
+                btn.setPreferredSize(new Dimension(150, 100));
+
+                // IMPORTANT: pass ID instead of name
+                btn.addActionListener(e -> openCustomizeDialog(drinkId, drinkName, price));
+
+                grid.add(btn);
+            }
+
+        } catch (SQLException e) {
+            grid.add(new JLabel("Error loading drinks: " + e.getMessage()));
         }
 
         return grid;
     }
 
-    private void openCustomizeDialog(String drinkName) {
-        // dropdowns
+    private void openCustomizeDialog(int drinkId, String drinkName, double basePrice) {
+
         JComboBox<String> iceBox = new JComboBox<>(new String[]{"No Ice", "Less Ice", "Normal Ice"});
         JComboBox<String> sweetBox = new JComboBox<>(new String[]{"0%", "50%", "100%"});
         JComboBox<String> milkBox = new JComboBox<>(new String[]{"Cow", "Oat", "Almond"});
@@ -693,6 +722,7 @@ public class POSScreen extends JPanel {
         );
 
         if (result == JOptionPane.OK_OPTION) {
+
             String ice = (String) iceBox.getSelectedItem();
             String sweet = (String) sweetBox.getSelectedItem();
             String milk = (String) milkBox.getSelectedItem();
@@ -706,12 +736,12 @@ public class POSScreen extends JPanel {
                     popping ? "Yes" : "No"
             );
 
-            double basePrice = getDrinkBasePrice(drinkName);
             double finalPrice = basePrice
                     + (boba ? 0.50 : 0.0)
                     + (popping ? 0.75 : 0.0);
 
-            addToCart(drinkName, options, finalPrice);
+            // IMPORTANT: store drinkId for later DB insert
+            addToCartWithId("Drink", drinkId, drinkName, options, finalPrice);
         }
     }
 
