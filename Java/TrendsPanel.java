@@ -58,7 +58,8 @@ public class TrendsPanel extends JPanel {
         trends.add(barChart);
 
         // line chart to show monthly number of sales
-
+        ChartPanel lineChart = SetUpLineChart();
+        trends.add(lineChart);
 
         // Show busy time trends
 
@@ -135,6 +136,14 @@ public class TrendsPanel extends JPanel {
         ChartPanel barChart = new ChartPanel(revenueBarChart);
 
         return barChart;
+    }
+
+    private static ChartPanel SetUpLineChart() {
+        // line chart will display monthly amount of customer orders by tracking receipts per month
+        ResultSet receiptData = GetReceipts();
+        DefaultCategoryDataset receiptDataset = LoadReceiptData(receiptData);
+
+
     }
 
     private static void GetConnection() {
@@ -257,22 +266,50 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    private static ResultSet GetReceipts() {
+        // finds total number of receipts for each month
+        try {
+            GetConnection();
+
+            //create a statement object
+            Statement stmt = conn.createStatement();
+
+            //create a SQL statement
+            String sqlStatement = """
+                SELECT COUNT(id) AS receipts, month
+                FROM (
+                    SELECT id, DATE_PART('month', purchase_date) AS month 
+                    FROM receipt
+                )
+                GROUP BY month
+                ORDER BY month ASC;
+            """;
+            
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
+    }
+
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
         // create dataset for pi graph
-        DefaultPieDataset orderPiGraphData = new DefaultPieDataset();
+        DefaultPieDataset piDataset = new DefaultPieDataset();
 
         // while loop through result set and input values into dataset
         try {
             while (orderCount != null && orderCount.next()) {
-                orderPiGraphData.setValue(orderCount.getString("name"), orderCount.getInt("number_of_orders"));
+                piDataset.setValue(orderCount.getString("name"), orderCount.getInt("number_of_orders"));
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
         
         // return!
-        return orderPiGraphData;
+        return piDataset;
     }
 
     private static DefaultCategoryDataset LoadBarData(ResultSet barData, String saleType) {
@@ -290,5 +327,22 @@ public class TrendsPanel extends JPanel {
         
         // return!
         return barDataset;
+    }
+
+    private static DefaultCategoryDataset LoadReceiptData(ResultSet receiptData) {
+        // create dataset for line graph
+        DefaultCategoryDataset lineDataset = new DefaultCategoryDataset();
+
+        // while loop through result set and input values into dataset
+        try {
+            while (receiptData != null && receiptData.next()) {
+                lineDataset.addValue(receiptData.getInt("receipts"), "Receipts", receiptData.getString("month"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        
+        // return!
+        return lineDataset;
     }
 }
