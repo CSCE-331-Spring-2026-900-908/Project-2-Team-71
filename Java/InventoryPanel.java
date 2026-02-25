@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,16 +11,17 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class Inventory extends JPanel {
+public class InventoryPanel extends JPanel {
+
     private static Connection conn;
     private static DefaultTableModel tableModel;
     private static JTable inventoryTable;
-    
+
     private boolean isEditing = false;
     private boolean dataChanged = false;
 
     private JButton editBtn, addBtn, confirmBtn;
-    private JPanel buttonPanel; 
+    private JPanel buttonPanel;
     private JScrollPane scrollPane;
     private JLabel nameLabel = new JLabel("Name: -");
     private JLabel amountLabel = new JLabel("Amount: -");
@@ -42,13 +44,18 @@ public class Inventory extends JPanel {
         }
     }
 
-    public Inventory(GUI screen) {
+    public InventoryPanel(GUI screen) {
         GetConnection();
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // --- 1. Top Panel ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JButton backButton = new JButton("Menu");
+        backButton.addActionListener(e -> screen.showScreen("MAIN"));
+        topPanel.add(backButton);
+
         JTextField searchField = new JTextField(15);
         JButton refreshBtn = new JButton("Refresh");
         addBtn = new JButton("Add New Row");
@@ -65,9 +72,12 @@ public class Inventory extends JPanel {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 0 || columnIndex == 2) return Integer.class;
+                if (columnIndex == 0 || columnIndex == 2) {
+                    return Integer.class;
+                }
                 return String.class;
             }
+
             @Override
             public boolean isCellEditable(int row, int column) {
                 // ID is index 0, Item Name is index 1. Both now editable during Edit mode!
@@ -111,15 +121,18 @@ public class Inventory extends JPanel {
         detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
         detailPanel.setPreferredSize(new Dimension(250, 0));
         detailPanel.setBorder(BorderFactory.createTitledBorder("Selected Item Details"));
-        detailPanel.add(nameLabel); detailPanel.add(Box.createVerticalStrut(10));
-        detailPanel.add(amountLabel); detailPanel.add(Box.createVerticalStrut(10));
-        detailPanel.add(supplierNameLabel); detailPanel.add(Box.createVerticalStrut(10));
+        detailPanel.add(nameLabel);
+        detailPanel.add(Box.createVerticalStrut(10));
+        detailPanel.add(amountLabel);
+        detailPanel.add(Box.createVerticalStrut(10));
+        detailPanel.add(supplierNameLabel);
+        detailPanel.add(Box.createVerticalStrut(10));
         detailPanel.add(supplierContactLabel);
 
         // --- 4. Bottom Panel ---
         JPanel bottomPanel = new JPanel(new BorderLayout());
         confirmBtn = new JButton("Confirm Changes");
-        confirmBtn.setBackground(new Color(46, 204, 113)); 
+        confirmBtn.setBackground(new Color(46, 204, 113));
         confirmBtn.setForeground(Color.WHITE);
         confirmBtn.setVisible(false);
         bottomPanel.add(totalStatsLabel, BorderLayout.WEST);
@@ -163,9 +176,17 @@ public class Inventory extends JPanel {
         });
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { refreshData(searchField.getText()); }
-            public void removeUpdate(DocumentEvent e) { refreshData(searchField.getText()); }
-            public void changedUpdate(DocumentEvent e) { refreshData(searchField.getText()); }
+            public void insertUpdate(DocumentEvent e) {
+                refreshData(searchField.getText());
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                refreshData(searchField.getText());
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                refreshData(searchField.getText());
+            }
         });
 
         refreshBtn.addActionListener(e -> {
@@ -189,9 +210,11 @@ public class Inventory extends JPanel {
             for (int i = 0; i < inventoryTable.getRowCount(); i++) {
                 JPanel rowActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
                 rowActions.setMaximumSize(new Dimension(70, 30));
-                JButton del = new JButton("X"); del.setForeground(Color.RED);
-                JButton duo = new JButton("D"); 
-                del.setPreferredSize(new Dimension(30,30)); duo.setPreferredSize(new Dimension(30,30));
+                JButton del = new JButton("X");
+                del.setForeground(Color.RED);
+                JButton duo = new JButton("D");
+                del.setPreferredSize(new Dimension(30, 30));
+                duo.setPreferredSize(new Dimension(30, 30));
 
                 final int viewRow = i;
                 del.addActionListener(e -> {
@@ -199,26 +222,29 @@ public class Inventory extends JPanel {
                     int id = (int) tableModel.getValueAt(modelRow, 0);
                     String name = (String) tableModel.getValueAt(modelRow, 1);
                     if (JOptionPane.showConfirmDialog(this, "Delete " + name + "?") == JOptionPane.YES_OPTION) {
-                        deleteFromDatabase(id); refreshData("");
+                        deleteFromDatabase(id);
+                        refreshData("");
                     }
                 });
 
                 duo.addActionListener(e -> {
                     int mRow = inventoryTable.convertRowIndexToModel(viewRow);
-                    showAddItemDialog((String)tableModel.getValueAt(mRow, 1), (int)tableModel.getValueAt(mRow, 2), (String)tableModel.getValueAt(mRow, 3), (String)tableModel.getValueAt(mRow, 4));
+                    showAddItemDialog((String) tableModel.getValueAt(mRow, 1), (int) tableModel.getValueAt(mRow, 2), (String) tableModel.getValueAt(mRow, 3), (String) tableModel.getValueAt(mRow, 4));
                 });
 
-                rowActions.add(del); rowActions.add(duo);
+                rowActions.add(del);
+                rowActions.add(duo);
                 buttonPanel.add(rowActions);
             }
         }
-        buttonPanel.revalidate(); buttonPanel.repaint();
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
     }
 
     private void showAddItemDialog(String dName, int dQty, String dSupp, String dCont) {
-        JTextField f1 = new JTextField(dName); 
+        JTextField f1 = new JTextField(dName);
         JTextField f2 = new JTextField(String.valueOf(dQty));
-        JTextField f3 = new JTextField(dSupp); 
+        JTextField f3 = new JTextField(dSupp);
         JTextField f4 = new JTextField(dCont);
         Object[] m = {"Item Name:", f1, "Qty:", f2, "Supplier:", f3, "Contact:", f4};
 
@@ -250,17 +276,23 @@ public class Inventory extends JPanel {
                 pstmt.addBatch();
             }
             pstmt.executeBatch();
-        } catch (SQLException ex) { JOptionPane.showMessageDialog(this, "Save Error: " + ex.getMessage()); }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Save Error: " + ex.getMessage());
+        }
     }
 
     private void deleteFromDatabase(int id) {
         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM inventory WHERE id = ?")) {
-            ps.setInt(1, id); ps.executeUpdate();
-        } catch (SQLException ex) { }
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+        }
     }
 
     private void refreshData(String filter) {
-        if (conn == null) return;
+        if (conn == null) {
+            return;
+        }
         tableModel.setRowCount(0);
         int total = 0;
         try (PreparedStatement pstmt = conn.prepareStatement("SELECT id, name, amount, supplier_name, supplier_contact FROM inventory WHERE name ILIKE ? ORDER BY id ASC")) {
@@ -275,6 +307,7 @@ public class Inventory extends JPanel {
             }
             totalStatsLabel.setText("Total Items: " + total);
             updateActionButtons();
-        } catch (SQLException e) { }
+        } catch (SQLException e) {
+        }
     }
 }
