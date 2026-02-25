@@ -1,25 +1,61 @@
 
-import javax.swing.*;
-import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
-
 import java.awt.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Properties;
-import java.util.List;
-import java.util.ArrayList;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import javax.swing.*;
+
+
+
+//JMJT
 
 public class TrendsPanel extends JPanel {
 
     private GUI gui;
     private static Connection conn;
 
+    public TrendsPanel(GUI gui) {
+        this.gui = gui;
+        setLayout(new BorderLayout());
+
+        // Create panel to view graphs
+
+        JPanel trends = new JPanel();
+        trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
+        trends.setLayout(new GridLayout(2,2));
+
+        add(trends, BorderLayout.CENTER);
+        
+        // add four different graphs
+
+        // Pie chart for showing most popular drinks
+
+        // display panel
+
+        //JFreeChart revenueChart = ChartFactory.createBarChart();
+        
+
+        
+        
+        
+        
+        
+        /* 
+        String display = "";
+        ResultSet result = GetInventory();
+
+        try {
+            while (result.next()) {
+                display += result.getString("name") + " " + result.getString("amount") + "\n";
+            }
+        } catch (Exception e) {
+            System.exit(1);
+        }
+        */
+        
+    }
 
     private static void getConnection() {
         Properties props = new Properties();
@@ -43,17 +79,7 @@ public class TrendsPanel extends JPanel {
         }
     }
 
-    private static void CloseConnection() {
-        //closing the connection
-        try {
-            conn.close();
-            JOptionPane.showMessageDialog(null, "Connection Closed.");
-        } catch (HeadlessException | SQLException e) {
-            JOptionPane.showMessageDialog(null, "Connection NOT Closed.");
-        }
-    }
-
-    private static ResultSet GetInventory() {
+    private static ResultSet GetRevenue() {
         try {
             //create a statement object
             Statement stmt = conn.createStatement();
@@ -70,28 +96,5 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    public TrendsPanel(GUI gui) {
-        this.gui = gui;
-        setLayout(new BorderLayout());
-
-        String display = "";
-        ResultSet result = GetInventory();
-
-        try {
-            while (result.next()) {
-                display += result.getString("name") + " " + result.getString("amount") + "\n";
-            }
-        } catch (Exception e) {
-            System.exit(1);
-        }
-
-        JTextArea textArea = new JTextArea();
-        textArea.setText(display);
-        textArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        //panel.add(scrollPane);
-
-        CloseConnection();
-
-    }
+    
 }
