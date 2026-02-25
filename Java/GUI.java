@@ -1,7 +1,7 @@
 
 import java.awt.*;
-import javax.swing.*;
 import java.sql.*;
+import javax.swing.*;
 
 public class GUI extends JFrame {
 
@@ -12,8 +12,14 @@ public class GUI extends JFrame {
     private Integer cashierId = null;
     private String cashierName = null;
 
-    public Integer getCashierId() { return cashierId; }
-    public String getCashierName() { return cashierName; }
+    public Integer getCashierId() {
+        return cashierId;
+    }
+
+    public String getCashierName() {
+        return cashierName;
+    }
+
     ////////////////////////////////////////////////////////////////////////
 
     public GUI() {
@@ -26,12 +32,12 @@ public class GUI extends JFrame {
         container = new JPanel(cardLayout);
 
         // Create screens
-//        MainMenuPanel menuPanel = new MainMenuPanel(this);
+        MainMenuPanel menuPanel = new MainMenuPanel(this);
 //        PanelTemplate template = new PanelTemplate(this);
-        POSScreen posScreen = new POSScreen(this, conn); //assumoing coonection obj is created elsewhere
+        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
 
         // Add screens to container
-//        container.add(menuPanel, "MAIN");
+        container.add(menuPanel, "MAIN");
 //        container.add(template, "TEMP");
         container.add(posScreen, "POS");
 
@@ -41,9 +47,9 @@ public class GUI extends JFrame {
         setVisible(true);
 
         /////////////////// login //////////////////////////////////////////////
-        while (!promptCashierLoginById()) {
-            // keep asking until valid cashier ID
-        }
+        // while (!promptCashierLoginById()) {
+        //     // keep asking until valid cashier ID
+        // }
         ////////////////////////////////////////////////////////////////////////
 
         showScreen("POS"); // open to the POS page
@@ -58,8 +64,9 @@ public class GUI extends JFrame {
         String input = JOptionPane.showInputDialog(this, "Enter Cashier ID:", "Cashier Login",
                 JOptionPane.QUESTION_MESSAGE);
 
-        if (input == null) return false; // cancel
-
+        if (input == null) {
+            return false; // cancel
+        }
         input = input.trim();
         if (!input.matches("\\d+")) {
             JOptionPane.showMessageDialog(this, "Cashier ID must be a number.");
