@@ -11,28 +11,16 @@ import javax.swing.table.DefaultTableModel;
 
 public class Inventory extends JPanel {
     private static final String PANEL_TITLE = "Inventory";
-
-    // Reference line 259 for what this does
-    private static final String TABLE_QUERY = """
-        SELECT * FROM INVENTORY;
-    """;
-
-    // Reference line 92 for what this does
-    private static final String[] COLUMNS = {
-        "Column 1",
-        "Column 2",
-        "Column 3"
-    };
+    private static final String TABLE_QUERY = "SELECT * FROM INVENTORY;";
 
     private static Connection conn;
     private static DefaultTableModel tableModel;
     private static JTable inventoryTable;
     
-    // Right panel labels
     private static JLabel nameLabel = new JLabel("Name: -");
     private static JLabel amountLabel = new JLabel("Amount: -");
-    private static JLabel priceLabel = new JLabel("Price: -");
-    private static JLabel dateLabel = new JLabel("Date: -");
+    private static JLabel supplierNameLabel = new JLabel("Supplier Name: -");
+    private static JLabel supplierContactLabel = new JLabel("Supplier Contact: -");
     private static JLabel totalStatsLabel = new JLabel("Total Items: 0 | Total Value: $0.00");
 
     private static void GetConnection() {
@@ -58,7 +46,7 @@ public class Inventory extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // --- 1. Top Panel (Search & Filters) ---
+        // --- 1. Top Panel ---
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JTextField searchField = new JTextField(15);
         JTextField fromDate = new JTextField("2024-01-01", 8);
@@ -75,31 +63,41 @@ public class Inventory extends JPanel {
 
         // --- 2. Center (The Table) ---
         String[] columns = {"Item Name", "Quantity", "Supplier Name", "Supplier Contact"};
-        tableModel = new DefaultTableModel(columns, 0);
+        
+        // MODIFIED: Override getColumnClass so Quantity (Index 1) sorts numerically
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 1) return Integer.class; 
+                return String.class;
+            }
+        };
+
         inventoryTable = new JTable(tableModel);
+        
+        // ADDED: This enables the clickable header arrows
+        inventoryTable.setAutoCreateRowSorter(true); 
+        
         JScrollPane scrollPane = new JScrollPane(inventoryTable);
 
-        // --- 3. Right Panel (Details) ---
+        // --- 3. Right Panel ---
         JPanel detailPanel = new JPanel();
         detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
         detailPanel.setPreferredSize(new Dimension(250, 0));
         detailPanel.setBorder(BorderFactory.createTitledBorder("Selected Item Details"));
-
         detailPanel.add(nameLabel);
         detailPanel.add(Box.createVerticalStrut(10));
         detailPanel.add(amountLabel);
         detailPanel.add(Box.createVerticalStrut(10));
-        detailPanel.add(priceLabel);
+        detailPanel.add(supplierNameLabel);
         detailPanel.add(Box.createVerticalStrut(10));
-        detailPanel.add(dateLabel);
+        detailPanel.add(supplierContactLabel);
 
-        // --- 4. Bottom Panel (Status/Totals) ---
+        // --- 4. Bottom Panel ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.add(totalStatsLabel);
 
-        // ===================== LOGIC & EVENTS =====================
-
-        // Search as you type
+        // --- LOGIC & EVENTS ---
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { update(); }
             public void removeUpdate(DocumentEvent e) { update(); }
@@ -107,58 +105,35 @@ public class Inventory extends JPanel {
             private void update() { refreshData(searchField.getText()); }
         });
 
-        // Manual Refresh
         refreshBtn.addActionListener(e -> refreshData(searchField.getText()));
 
-        // Table Click Selection
+        // MODIFIED: Added convertRowIndexToModel so selection works after sorting
         inventoryTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && inventoryTable.getSelectedRow() != -1) {
-                int row = inventoryTable.getSelectedRow();
-                nameLabel.setText("Name: " + tableModel.getValueAt(row, 0));
-                amountLabel.setText("Amount: " + tableModel.getValueAt(row, 1));
-                priceLabel.setText("Price: $" + tableModel.getValueAt(row, 2));
-                dateLabel.setText("Date: " + tableModel.getValueAt(row, 3));
+                int viewRow = inventoryTable.getSelectedRow();
+                int modelRow = inventoryTable.convertRowIndexToModel(viewRow);
+                
+                nameLabel.setText("Name: " + tableModel.getValueAt(modelRow, 0));
+                amountLabel.setText("Amount: " + tableModel.getValueAt(modelRow, 1));
+                supplierNameLabel.setText("Supplier Name: " + tableModel.getValueAt(modelRow, 2));
+                supplierContactLabel.setText("Supplier Contact: " + tableModel.getValueAt(modelRow, 3));
             }
         });
 
-        // Initial Load
         refreshData("");
 
-        // Final Assembly
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane, detailPanel);
         splitPane.setDividerLocation(800);
-
         add(topPanel, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
-
-        
-    }
-    private ResultSet getData() {
-
-        GetConnection();
-
-        try {
-            Statement stmt = conn.createStatement();
-            return stmt.executeQuery(TABLE_QUERY);
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage());
-        }
-
-        return null;
     }
 
     private static void refreshData(String filter) {
-        if (conn == null) {
-            JOptionPane.showMessageDialog(null, "No database connection.");
-            return;
-        };
+        if (conn == null) return;
         
         tableModel.setRowCount(0);
-        double totalValue = 0;
         int totalQty = 0;
-
-        // Uses ILIKE for case-insensitive partial name matching
         String query = "SELECT * FROM inventory WHERE name ILIKE ?;";
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -171,13 +146,11 @@ public class Inventory extends JPanel {
                 String supplierName = rs.getString("supplier_name");
                 String supplierContact = rs.getString("supplier_contact");
 
+                // Note: The 'qty' is passed as an Integer object so it sorts correctly
                 tableModel.addRow(new Object[]{name, qty, supplierName, supplierContact});
-                
                 totalQty += qty;
             }
-
-            totalStatsLabel.setText(String.format("Total Items: %d | Total Value: $%.2f", totalQty, totalValue));
-
+            totalStatsLabel.setText(String.format("Total Items: %d | Total Value: $0.00", totalQty));
         } catch (SQLException e) {
             System.err.println("Query Error: " + e.getMessage());
         }
