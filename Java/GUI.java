@@ -18,9 +18,11 @@ public class GUI extends JFrame {
 
         // Create screens
         MainMenuPanel menuPanel = new MainMenuPanel(this);
+        PanelTemplate template = new PanelTemplate(this);
 
         // Add screens to container
         container.add(menuPanel, "MAIN");
+        container.add(template, "TEMP");
 
         add(container);
 

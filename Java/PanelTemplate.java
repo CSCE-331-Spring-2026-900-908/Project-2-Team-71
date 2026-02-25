@@ -15,11 +15,14 @@ public class PanelTemplate extends JPanel {
     // ===================== CONFIG SECTION =====================
     // 🔹 EDIT THESE FOR EACH PANEL
     private static final String PANEL_TITLE = "Panel Name";
+
+    // Reference line 259 for what this does
     private static final String TABLE_QUERY = """
         SELECT id, column1, column2
         FROM your_table;
     """;
 
+    // Reference line 92 for what this does
     private static final String[] COLUMNS = {
         "Column 1",
         "Column 2",
@@ -233,7 +236,7 @@ public class PanelTemplate extends JPanel {
         }
 
         try {
-            String databaseUrl = props.getProperty("DATABASE_URL");
+            String databaseUrl = props.getProperty("DATABASE_URL") + props.getProperty("DATABASE_NAME");
             String databaseUser = props.getProperty("DATABASE_USER");
             String databasePassword = props.getProperty("DATABASE_PASSWORD");
 
@@ -244,7 +247,7 @@ public class PanelTemplate extends JPanel {
             );
 
         } catch (SQLException e) {
-            System.err.println(e.getMessage());
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
 
