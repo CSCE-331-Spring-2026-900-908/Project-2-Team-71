@@ -26,8 +26,6 @@ import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 
 
-
-
 //JMJT
 
 public class TrendsPanel extends JPanel {
@@ -62,29 +60,14 @@ public class TrendsPanel extends JPanel {
         trends.add(lineChart);
 
         // Show busy time trends
+        ChartPanel timeChart = SetUpTimeChart();
+        trends.add(timeChart);
+        
 
-        //JFreeChart revenueChart = ChartFactory.createBarChart();
-        
-        
-        
-        
         return trends;
-        
-        
-        /* 
-        String display = "";
-        ResultSet result = GetInventory();
-
-        try {
-            while (result.next()) {
-                display += result.getString("name") + " " + result.getString("amount") + "\n";
-            }
-        } catch (Exception e) {
-            System.exit(1);
-        }
-        */
-        
     }
+
+
 
     private static ChartPanel SetUpPiChart() {
         ResultSet orderCount = GetDrinksAndFoodCount();
@@ -157,6 +140,29 @@ public class TrendsPanel extends JPanel {
         ChartPanel lineChart = new ChartPanel(receiptLineChart);
         return lineChart;
     }
+
+    private static ChartPanel SetUpTimeChart() {
+        ResultSet timeData = GetTimes();
+        DefaultCategoryDataset timeDataset = LoadTimeData(timeData);
+        
+
+        JFreeChart timeLineChart = ChartFactory.createLineChart(
+            "Hourly Business",
+            "Time", 
+            "Receipts", 
+            timeDataset, 
+            PlotOrientation.VERTICAL,
+            false, // Legend?
+            true, // Tooltips?
+            false // URLs?
+        );
+
+        // Convert chart into a panel and return!
+        ChartPanel timeChart = new ChartPanel(timeLineChart);
+        return timeChart;
+    }
+
+
 
     private static void GetConnection() {
         Properties props = new Properties();
@@ -306,6 +312,40 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    private static ResultSet GetTimes() {
+        // finds avg number of receipts for each hour
+        try {
+            GetConnection();
+
+            //create a statement object
+            Statement stmt = conn.createStatement();
+
+            //create a SQL statement
+            String sqlStatement = """
+                SELECT AVG(orders) AS avg_receipts, hour
+                FROM (
+                    SELECT COUNT(id) AS orders, 
+                    DATE_PART('hour', purchase_date) AS hour, 
+                    DATE_PART('month', purchase_date) AS month, 
+                    DATE_PART('day', purchase_date) AS day
+                    FROM receipt
+                    GROUP BY hour, day, month
+                )
+                GROUP BY hour
+                ORDER BY hour ASC;
+            """;
+            
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
+    }
+
+
+
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
         // create dataset for pi graph
@@ -356,5 +396,22 @@ public class TrendsPanel extends JPanel {
         
         // return!
         return lineDataset;
+    }
+
+    private static DefaultCategoryDataset LoadTimeData(ResultSet timeData) {
+        // create dataset for line graph
+        DefaultCategoryDataset timeDataset = new DefaultCategoryDataset();
+
+        // while loop through result set and input values into dataset
+        try {
+            while (timeData != null && timeData.next()) {
+                timeDataset.addValue(timeData.getInt("avg_receipts"), "Avg Receipts", timeData.getString("hour"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        
+        // return!
+        return timeDataset;
     }
 }
