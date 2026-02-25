@@ -11,6 +11,11 @@ public class MainMenuPanel extends JPanel {
         JLabel title = new JLabel("Main Menu", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 24));
 
+        JButton openInventory = new JButton("Open Inventory");
+        openInventory.addActionListener(e -> gui.showScreen("INVENTORY"));
+
+        JPanel centerPanel = new JPanel();
+        centerPanel.add(openInventory);
         JButton openPurchases = new JButton("Open Purchases");
         openPurchases.addActionListener(e -> gui.showScreen("Purchases"));
 

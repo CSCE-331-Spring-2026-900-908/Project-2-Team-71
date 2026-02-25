@@ -18,6 +18,11 @@ public class GUI extends JFrame {
 
         // Create screens
         MainMenuPanel menuPanel = new MainMenuPanel(this);
+        Inventory inventoryPanel = new Inventory(this);
+
+        // Add screens to container
+        container.add(menuPanel, "MAIN");
+        container.add(inventoryPanel, "INVENTORY");
         PurchasesPanel purchasesPanel = new PurchasesPanel(this);
         TransactionsPanel transactionsPanel = new TransactionsPanel(this);
         POSScreen posScreen = new POSScreen(this);
