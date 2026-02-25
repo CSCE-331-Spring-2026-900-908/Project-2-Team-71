@@ -4,8 +4,8 @@ import javax.swing.*;
 
 public class GUI extends JFrame {
 
-    private CardLayout cardLayout;
-    private JPanel container;
+    private final CardLayout cardLayout;
+    private final JPanel container;
 
     public GUI() {
         setTitle("DB GUI");
@@ -23,6 +23,15 @@ public class GUI extends JFrame {
         // Add screens to container
         container.add(menuPanel, "MAIN");
         container.add(inventoryPanel, "INVENTORY");
+        PurchasesPanel purchasesPanel = new PurchasesPanel(this);
+        TransactionsPanel transactionsPanel = new TransactionsPanel(this);
+        POSScreen posScreen = new POSScreen(this);
+
+        // Add screens to container
+        container.add(menuPanel, "MAIN");
+        container.add(purchasesPanel, "Purchases");
+        container.add(transactionsPanel, "Transactions");
+        container.add(posScreen, "POS");
 
         add(container);
 
@@ -30,7 +39,6 @@ public class GUI extends JFrame {
         setVisible(true);
     }
 
-    // Method to switch screens
     public void showScreen(String name) {
         cardLayout.show(container, name);
     }
