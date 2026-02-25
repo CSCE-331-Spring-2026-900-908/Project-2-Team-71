@@ -15,6 +15,8 @@ import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import org.jfree.data.general.DefaultPieDataset;
+
 
 
 //JMJT
@@ -39,6 +41,11 @@ public class TrendsPanel extends JPanel {
         // add four different graphs
 
         // Pie chart for showing most popular drinks
+        ResultSet orderCount = GetDrinksAndFoodCount();
+
+        DefaultPieDataset orderDefaultPieDataset = loadOrderData(orderCount);
+
+
 
 
         // Bar chart for showing monthly revenue
@@ -140,6 +147,23 @@ public class TrendsPanel extends JPanel {
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
         return null;
+    }
+
+    private DefaultPieDataset loadOrderData(ResultSet orderCount) {
+        // create dataset for pi graph
+        DefaultPieDataset orderPiGraphData = new DefaultPieDataset();
+
+        // while loop through result set and input values into dataset
+        try {
+            while (orderCount != null && orderCount.next()) {
+                orderPiGraphData.setValue(orderCount.getString("name"), orderCount.getInt("number_of_orders"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+        
+        // return!
+        return orderPiGraphData;
     }
 
     
