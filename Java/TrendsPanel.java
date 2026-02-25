@@ -1,5 +1,6 @@
 
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -10,13 +11,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
-import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 
 
@@ -28,27 +29,27 @@ public class TrendsPanel extends JPanel {
     private GUI gui;
     private static Connection conn;
 
-    public TrendsPanel(GUI gui) {
-        this.gui = gui;
-        setLayout(new BorderLayout());
+    public static JPanel ShowGUI(GUI gui) {
+        //this.gui = gui;
+        gui.setLayout(new BorderLayout());
 
         // Create panel to view graphs
 
         JPanel trends = new JPanel();
-        trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
-        //trends.setLayout(new GridLayout(2,2));
+        //trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
+        trends.setLayout(new GridLayout(2, 2, 20, 20));
 
-        
-        
-        // add four different graphs
+
+        // add four different graphs //
+
 
         // Pie chart for showing most popular drinks
         ResultSet orderCount = GetDrinksAndFoodCount();
-        DefaultPieDataset orderDefaultPieDataset = loadOrderData(orderCount);
+        DefaultPieDataset orderPieDataset = loadOrderData(orderCount);
 
         JFreeChart ordersPiChart = ChartFactory.createPieChart(
             "All Time Sales Per Item", // Title
-            orderDefaultPieDataset, // Dataset
+            orderPieDataset, // Dataset
             true, // Legend?
             true, // Tooltip?
             false // URLS?
@@ -56,11 +57,26 @@ public class TrendsPanel extends JPanel {
 
         ChartPanel piChart = new ChartPanel(ordersPiChart);
         trends.add(piChart);
-        add(trends, BorderLayout.CENTER);
 
 
-
+        /* 
         // Bar chart for showing monthly revenue
+        ResultSet revenueData = GetRevenue();
+        DefaultCategoryDataset revenueDataset = loadRevenueData(revenueData);
+
+        // Create combination bar plot. One bar will be expenses and other on top will be revenue.
+        CategoryPlot revenuePlot = new CategoryPlot();
+        // TODO
+
+        JFreeChart revenueBarGraph = new JFreeChart(
+            "Monthly Revenue", // Title
+            null, // null if default font
+            revenuePlot, // Combination bar graph plot
+            true // Legend
+        );
+
+        ChartPanel barGraph = new ChartPanel(revenueBarGraph);
+        trends.add(barGraph);
 
         // line chart to show monthly number of sales
 
@@ -68,10 +84,10 @@ public class TrendsPanel extends JPanel {
 
         //JFreeChart revenueChart = ChartFactory.createBarChart();
         
-
+        */
         
         
-        
+        return trends;
         
         
         /* 
@@ -114,6 +130,8 @@ public class TrendsPanel extends JPanel {
 
     private static ResultSet GetDrinksAndFoodCount() {
         try {
+            getConnection();
+
             //create a statement object
             Statement stmt = conn.createStatement();
 
@@ -146,6 +164,8 @@ public class TrendsPanel extends JPanel {
 
     private static ResultSet GetRevenue() {
         try {
+            getConnection();
+
             //create a statement object
             Statement stmt = conn.createStatement();
 
@@ -161,7 +181,8 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private DefaultPieDataset loadOrderData(ResultSet orderCount) {
+    private static DefaultPieDataset loadOrderData(ResultSet orderCount) {
+
         // create dataset for pi graph
         DefaultPieDataset orderPiGraphData = new DefaultPieDataset();
 
@@ -171,12 +192,29 @@ public class TrendsPanel extends JPanel {
                 orderPiGraphData.setValue(orderCount.getString("name"), orderCount.getInt("number_of_orders"));
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage());
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
         
         // return!
         return orderPiGraphData;
     }
 
+    private static DefaultCategoryDataset loadRevenueData(ResultSet revenueData) {
+        // create dataset for bar graph
+        DefaultCategoryDataset revenueDataset = new DefaultCategoryDataset();
+
+        // while loop through result set and input values into dataset
+        try {
+            while (revenueData != null && revenueData.next()) {
+                //TODO:
+                //revenueDataset.setValue(revenueData.getString("name"), revenueData.getInt("number_of_orders"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        
+        // return!
+        return revenueDataset;
+    }
     
 }
