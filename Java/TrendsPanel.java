@@ -1,11 +1,19 @@
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 
 
 
@@ -31,6 +39,11 @@ public class TrendsPanel extends JPanel {
         // add four different graphs
 
         // Pie chart for showing most popular drinks
+
+
+        // Bar chart for showing monthly revenue
+
+        // line chart to show monthly number of sales
 
         // display panel
 
@@ -77,6 +90,39 @@ public class TrendsPanel extends JPanel {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             System.exit(0);
         }
+    }
+
+
+    private static ResultSet GetDrinksAndFoodCount() {
+        try {
+            //create a statement object
+            Statement stmt = conn.createStatement();
+
+            //create a SQL statement
+            String sqlStatement = """
+                SELECT COUNT(drink_id) AS number_of_orders, name
+                FROM (
+                    SELECT drink_to_receipt.drink_id, drink.name
+                    FROM drink
+                    INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id
+                )
+                GROUP BY name
+                UNION
+                SELECT COUNT(food_id) AS number_of_orders, name
+                FROM (
+                    SELECT food_to_receipt.food_id, food.name
+                    FROM food
+                    INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id
+                )
+                GROUP BY name;
+            """;
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
     }
 
     private static ResultSet GetRevenue() {
