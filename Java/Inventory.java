@@ -24,7 +24,7 @@ public class Inventory extends JPanel {
         "Column 3"
     };
 
-    static Connection conn;
+    private static Connection conn;
     private static DefaultTableModel tableModel;
     private static JTable inventoryTable;
     
@@ -74,7 +74,7 @@ public class Inventory extends JPanel {
         topPanel.add(refreshBtn);
 
         // --- 2. Center (The Table) ---
-        String[] columns = {"Item Name", "Quantity", "Unit Price", "Date Added"};
+        String[] columns = {"Item Name", "Quantity", "Supplier Name", "Supplier Contact"};
         tableModel = new DefaultTableModel(columns, 0);
         inventoryTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(inventoryTable);
@@ -149,14 +149,17 @@ public class Inventory extends JPanel {
     }
 
     private static void refreshData(String filter) {
-        if (conn == null) return;
+        if (conn == null) {
+            JOptionPane.showMessageDialog(null, "No database connection.");
+            return;
+        };
         
         tableModel.setRowCount(0);
         double totalValue = 0;
         int totalQty = 0;
 
         // Uses ILIKE for case-insensitive partial name matching
-        String query = "SELECT * FROM INVENTORY;";
+        String query = "SELECT * FROM inventory WHERE name ILIKE ?;";
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, "%" + filter + "%");
@@ -165,13 +168,12 @@ public class Inventory extends JPanel {
             while (rs.next()) {
                 String name = rs.getString("name");
                 int qty = rs.getInt("amount");
-                double price = rs.getDouble("price");
-                Date date = rs.getDate("buy_date");
+                String supplierName = rs.getString("supplier_name");
+                String supplierContact = rs.getString("supplier_contact");
 
-                tableModel.addRow(new Object[]{name, qty, price, date});
+                tableModel.addRow(new Object[]{name, qty, supplierName, supplierContact});
                 
                 totalQty += qty;
-                totalValue += (qty * price);
             }
 
             totalStatsLabel.setText(String.format("Total Items: %d | Total Value: $%.2f", totalQty, totalValue));
