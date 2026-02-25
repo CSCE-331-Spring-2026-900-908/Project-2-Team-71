@@ -17,9 +17,14 @@ import javax.swing.JPanel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+
 
 
 
@@ -46,7 +51,7 @@ public class TrendsPanel extends JPanel {
 
         // Pie chart for showing most popular drinks
         ResultSet orderCount = GetDrinksAndFoodCount();
-        DefaultPieDataset orderPieDataset = loadOrderData(orderCount);
+        DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
 
         JFreeChart ordersPiChart = ChartFactory.createPieChart(
             "All Time Sales Per Item", // Title
@@ -62,12 +67,27 @@ public class TrendsPanel extends JPanel {
 
         // Bar chart for showing monthly revenue
         ResultSet incomeData = GetIncome();
-        DefaultCategoryDataset incomeDataset = loadIncomeData(incomeData);
+        DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
 
-        // Create combination bar plot. One bar will be expenses and other on top will be revenue.
-        CategoryPlot incomePlot = new CategoryPlot();
-        // TODO
+        ResultSet lossData = GetExpenses();
+        DefaultCategoryDataset lossDataset = LoadBarData(lossData, "Loss");
 
+        // Create combination bar plot. One bar will be loss and other on top will be income.
+        CategoryPlot revenuePlot = new CategoryPlot();
+        revenuePlot.setDataset(1,incomeDataset);
+        revenuePlot.setRenderer(1, new BarRenderer());
+
+        revenuePlot.setDataset(0,lossDataset);
+        revenuePlot.setRenderer(0, new BarRenderer());
+
+        revenuePlot.setDomainAxis(new CategoryAxis("Month"));
+        revenuePlot.setRangeAxis(new NumberAxis("Money"));
+
+        revenuePlot.setOrientation(PlotOrientation.VERTICAL);
+        revenuePlot.setRangeGridlinesVisible(true);
+        revenuePlot.setDomainGridlinesVisible(true);
+
+        // make plot into chart for adding to JPanel
         JFreeChart revenueBarGraph = new JFreeChart(
             "Monthly Revenue", // Title
             null, // null if default font
@@ -105,7 +125,7 @@ public class TrendsPanel extends JPanel {
         
     }
 
-    private static void getConnection() {
+    private static void GetConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
         try (FileInputStream inputStream = new FileInputStream(envFile)) {
@@ -130,7 +150,7 @@ public class TrendsPanel extends JPanel {
 
     private static ResultSet GetDrinksAndFoodCount() {
         try {
-            getConnection();
+            GetConnection();
 
             //create a statement object
             Statement stmt = conn.createStatement();
@@ -165,7 +185,7 @@ public class TrendsPanel extends JPanel {
     private static ResultSet GetIncome() {
         // finds total income from sales for each month
         try {
-            getConnection();
+            GetConnection();
 
             //create a statement object
             Statement stmt = conn.createStatement();
@@ -200,7 +220,7 @@ public class TrendsPanel extends JPanel {
     private static ResultSet GetExpenses() {
         // finds total expenses for each month
         try {
-            getConnection();
+            GetConnection();
 
             //create a statement object
             Statement stmt = conn.createStatement();
@@ -225,7 +245,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static DefaultPieDataset loadOrderData(ResultSet orderCount) {
+    private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
         // create dataset for pi graph
         DefaultPieDataset orderPiGraphData = new DefaultPieDataset();
@@ -243,22 +263,20 @@ public class TrendsPanel extends JPanel {
         return orderPiGraphData;
     }
 
-    private static DefaultCategoryDataset loadIncomeData(ResultSet revenueData) {
+    private static DefaultCategoryDataset LoadBarData(ResultSet barData, String saleType) {
         // create dataset for bar graph
-        DefaultCategoryDataset revenueDataset = new DefaultCategoryDataset();
+        DefaultCategoryDataset barDataset = new DefaultCategoryDataset();
 
         // while loop through result set and input values into dataset
         try {
-            while (revenueData != null && revenueData.next()) {
-                //TODO:
-                //revenueDataset.setValue(revenueData.getString("name"), revenueData.getInt("number_of_orders"));
+            while (barData != null && barData.next()) {
+                barDataset.addValue(barData.getInt(1), saleType, barData.getString(2));
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
         
         // return!
-        return revenueDataset;
+        return barDataset;
     }
-    
 }
