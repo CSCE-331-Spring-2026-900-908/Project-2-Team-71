@@ -32,12 +32,6 @@ public class POSScreen extends JPanel {
         // Example: left panel contains customer area + cart + checkout
         add(buildLeftPanel(), BorderLayout.WEST);
         add(buildRightPanel(), BorderLayout.CENTER);
-
-        addToCart("Black Milk Tea", 7.50); //temp test
-        addToCart("French Fries", 3.50);
-
-        // Add your right side etc. later...
-        // TEMP placeholder so BorderLayout doesn’t collapse visually
     }
 
     private void getConnection() {
@@ -236,10 +230,6 @@ public class POSScreen extends JPanel {
         panel.add(totalRow);
         panel.add(Box.createVerticalStrut(10));
         panel.add(checkoutButton);
-
-        JLabel cashierLabel = new JLabel("Cashier: " + gui.getCashierName() + " (ID " + gui.getCashierId() + ")");
-        cashierLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(cashierLabel);
 
         return panel;
     }

@@ -30,8 +30,6 @@ public class GUI extends JFrame {
 
         setLocationRelativeTo(null); // center window
         setVisible(true);
-
-        showScreen("POS"); // open to the POS page
     }
 
     public void showScreen(String name) {
