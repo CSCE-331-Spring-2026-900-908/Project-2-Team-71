@@ -4,8 +4,8 @@ import javax.swing.*;
 
 public class GUI extends JFrame {
 
-    private CardLayout cardLayout;
-    private JPanel container;
+    private final CardLayout cardLayout;
+    private final JPanel container;
 
     public GUI() {
         setTitle("DB GUI");
@@ -18,12 +18,13 @@ public class GUI extends JFrame {
 
         // Create screens
         MainMenuPanel menuPanel = new MainMenuPanel(this);
-//        PanelTemplate template = new PanelTemplate(this);
-        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
+        PurchasesPanel purchasesPanel = new PurchasesPanel(this); // your existing POS screen
 
         // Add screens to container
         container.add(menuPanel, "MAIN");
-//        container.add(template, "TEMP");
+        container.add(purchasesPanel, "Purchases");
+//        PanelTemplate template = new PanelTemplate(this);
+        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
         container.add(posScreen, "POS");
 
         add(container);
