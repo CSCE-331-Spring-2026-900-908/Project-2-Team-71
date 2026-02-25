@@ -33,15 +33,15 @@ public class TrendsPanel extends JPanel {
     //private GUI gui;
     private static Connection conn;
 
-    public static JPanel ShowGUI(GUI gui) {
+    public TrendsPanel(GUI gui) {
         //this.gui = gui;
-        gui.setLayout(new BorderLayout());
+        setLayout(new BorderLayout());
 
         // Create panel to view graphs
 
-        JPanel trends = new JPanel();
+        //JPanel trends = new JPanel();
         //trends.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
-        trends.setLayout(new GridLayout(2, 2, 20, 20));
+        setLayout(new GridLayout(2, 2, 20, 20));
 
 
         // add four different graphs //
@@ -49,22 +49,19 @@ public class TrendsPanel extends JPanel {
 
         // Pie chart for showing most popular drinks
         ChartPanel piChart = SetUpPiChart();
-        trends.add(piChart);
+        add(piChart);
 
         // Bar chart for showing monthly revenue
         ChartPanel barChart = SetUpBarChart();
-        trends.add(barChart);
+        add(barChart);
 
         // line chart to show monthly number of sales
         ChartPanel lineChart = SetUpLineChart();
-        trends.add(lineChart);
+        add(lineChart);
 
         // Show busy time trends
         ChartPanel timeChart = SetUpTimeChart();
-        trends.add(timeChart);
-        
-
-        return trends;
+        add(timeChart);
     }
 
 
