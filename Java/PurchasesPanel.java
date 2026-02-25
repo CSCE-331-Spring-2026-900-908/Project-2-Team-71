@@ -19,20 +19,18 @@ import java.sql.Timestamp;
 
 public class PurchasesPanel extends JPanel {
 
-    private GUI gui;
     private static Connection conn;
 
     // Table and model
     private DefaultTableModel model;
     private JTable table;
-    private TableRowSorter<DefaultTableModel> sorter;
+    private final TableRowSorter<DefaultTableModel> sorter;
 
     // Summary labels
-    private JLabel overallSummaryLabel;
+    private final JLabel overallSummaryLabel;
     private JLabel selectedItemSummaryLabel;
 
     public PurchasesPanel(GUI gui) {
-        this.gui = gui;
         setLayout(new BorderLayout());
 
         // ===== Top Bar =====
@@ -226,6 +224,7 @@ public class PurchasesPanel extends JPanel {
         String toText = toDateField.getText();
         if (!fromText.isEmpty() && !toText.isEmpty()) {
             filters.add(new RowFilter<Object, Object>() {
+                @Override
                 public boolean include(Entry<?, ?> entry) {
                     String date = (String) entry.getStringValue(3);
                     return date.compareTo(fromText) >= 0 && date.compareTo(toText) <= 0;
@@ -298,20 +297,23 @@ public class PurchasesPanel extends JPanel {
     // ===== SimpleDocumentListener Helper =====
     private static class SimpleDocumentListener implements DocumentListener {
 
-        private Runnable runnable;
+        private final Runnable runnable;
 
         public SimpleDocumentListener(Runnable runnable) {
             this.runnable = runnable;
         }
 
+        @Override
         public void insertUpdate(javax.swing.event.DocumentEvent e) {
             runnable.run();
         }
 
+        @Override
         public void removeUpdate(javax.swing.event.DocumentEvent e) {
             runnable.run();
         }
 
+        @Override
         public void changedUpdate(javax.swing.event.DocumentEvent e) {
             runnable.run();
         }

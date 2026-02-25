@@ -4,8 +4,8 @@ import javax.swing.*;
 
 public class GUI extends JFrame {
 
-    private CardLayout cardLayout;
-    private JPanel container;
+    private final CardLayout cardLayout;
+    private final JPanel container;
 
     public GUI() {
         setTitle("DB GUI");
