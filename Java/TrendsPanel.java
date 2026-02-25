@@ -50,57 +50,17 @@ public class TrendsPanel extends JPanel {
 
 
         // Pie chart for showing most popular drinks
-        ResultSet orderCount = GetDrinksAndFoodCount();
-        DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
-
-        JFreeChart ordersPiChart = ChartFactory.createPieChart(
-            "All Time Sales Per Item", // Title
-            orderPieDataset, // Dataset
-            true, // Legend?
-            true, // Tooltip?
-            false // URLS?
-        );
-
-        ChartPanel piChart = new ChartPanel(ordersPiChart);
+        ChartPanel piChart = SetUpPiChart();
         trends.add(piChart);
 
-
         // Bar chart for showing monthly revenue
-        ResultSet incomeData = GetIncome();
-        DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
-
-        ResultSet lossData = GetExpenses();
-        DefaultCategoryDataset lossDataset = LoadBarData(lossData, "Loss");
-
-        // Create combination bar plot. One bar will be loss and other on top will be income.
-        CategoryPlot revenuePlot = new CategoryPlot();
-        revenuePlot.setDataset(1,incomeDataset);
-        revenuePlot.setRenderer(1, new BarRenderer());
-
-        revenuePlot.setDataset(0,lossDataset);
-        revenuePlot.setRenderer(0, new BarRenderer());
-
-        revenuePlot.setDomainAxis(new CategoryAxis("Month"));
-        revenuePlot.setRangeAxis(new NumberAxis("Money"));
-
-        revenuePlot.setOrientation(PlotOrientation.VERTICAL);
-        revenuePlot.setRangeGridlinesVisible(true);
-        revenuePlot.setDomainGridlinesVisible(true);
-
-        // make plot into chart for adding to JPanel
-        JFreeChart revenueBarGraph = new JFreeChart(
-            "Monthly Revenue", // Title
-            null, // null if default font
-            revenuePlot, // Combination bar graph plot
-            true // Legend
-        );
-
-        ChartPanel barGraph = new ChartPanel(revenueBarGraph);
-        trends.add(barGraph);
+        ChartPanel barChart = SetUpBarChart();
+        trends.add(barChart);
 
         // line chart to show monthly number of sales
 
-        // display panel
+
+        // Show busy time trends
 
         //JFreeChart revenueChart = ChartFactory.createBarChart();
         
@@ -123,6 +83,58 @@ public class TrendsPanel extends JPanel {
         }
         */
         
+    }
+
+    private static ChartPanel SetUpPiChart() {
+        ResultSet orderCount = GetDrinksAndFoodCount();
+        DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
+
+        JFreeChart ordersPiChart = ChartFactory.createPieChart(
+            "All Time Sales Per Item", // Title
+            orderPieDataset, // Dataset
+            true, // Legend?
+            true, // Tooltip?
+            false // URLS?
+        );
+
+        ChartPanel piChart = new ChartPanel(ordersPiChart);
+
+        return piChart;
+    }
+
+    private static ChartPanel SetUpBarChart() {
+        ResultSet incomeData = GetIncome();
+        DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
+
+        ResultSet lossData = GetExpenses();
+        DefaultCategoryDataset lossDataset = LoadBarData(lossData, "Loss");
+
+        // Create combination bar plot. One bar will be loss and other on top will be income.
+        CategoryPlot revenuePlot = new CategoryPlot();
+        revenuePlot.setDataset(1,incomeDataset);
+        revenuePlot.setRenderer(1, new BarRenderer());
+
+        revenuePlot.setDataset(0,lossDataset);
+        revenuePlot.setRenderer(0, new BarRenderer());
+
+        revenuePlot.setDomainAxis(new CategoryAxis("Month"));
+        revenuePlot.setRangeAxis(new NumberAxis("Money"));
+
+        revenuePlot.setOrientation(PlotOrientation.VERTICAL);
+        revenuePlot.setRangeGridlinesVisible(true);
+        revenuePlot.setDomainGridlinesVisible(true);
+
+        // make plot into chart for adding to JPanel
+        JFreeChart revenueBarChart = new JFreeChart(
+            "Monthly Revenue", // Title
+            null, // null if default font
+            revenuePlot, // Combination bar graph plot
+            true // Legend
+        );
+
+        ChartPanel barChart = new ChartPanel(revenueBarChart);
+
+        return barChart;
     }
 
     private static void GetConnection() {
