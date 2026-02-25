@@ -390,7 +390,6 @@ public class PurchasesPanel extends JPanel {
                 insertStmt.executeUpdate();
             }
 
-            // FIXME There is an error in this function
             // 2️⃣ Update inventory table
             String updateInventorySql = """
             UPDATE inventory
