@@ -197,6 +197,34 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    private static ResultSet GetExpenses() {
+        // finds total expenses for each month
+        try {
+            getConnection();
+
+            //create a statement object
+            Statement stmt = conn.createStatement();
+
+            //create a SQL statement
+            String sqlStatement = """
+                SELECT SUM(expense) AS loss, month
+                FROM (
+                    SELECT supplier_price AS expense, DATE_PART('month', buy_date) AS month 
+                    FROM purchase
+                )
+                GROUP BY month
+                ORDER BY month ASC;
+            """;
+            
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
+    }
+
     private static DefaultPieDataset loadOrderData(ResultSet orderCount) {
 
         // create dataset for pi graph
