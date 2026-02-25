@@ -1,95 +1,155 @@
-
-import java.awt.HeadlessException;
+import java.awt.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.Properties;
+import java.util.*;
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
-public class Transactions {
+public class Transactions extends JPanel {
 
-    static Connection conn;
+    // ===================== CONFIG SECTION =====================
+    private static final String PANEL_TITLE = "Transactions";
 
-    private static void GetConnection() {
-        //Building the connection
-        Properties props = new Properties();
+    // Query to get the list of transactions for the left table
+    private static final String TABLE_QUERY = """
+        SELECT id, customer_name, total_price 
+        FROM transactions 
+        ORDER BY id DESC;
+    """;
 
-        // Specify the path to your .env file
-        var envFile = Paths.get(".env").toAbsolutePath().toString();
+    private static final String[] COLUMNS = {
+        "Transaction ID", "Customer Name", "Total"
+    };
 
-        try (FileInputStream inputStream = new FileInputStream(envFile)) {
-            props.load(inputStream);
-        } catch (IOException e) {
-            System.err.println("Error loading .env file: " + e.getMessage());
-            return;
-        }
+    // ==========================================================
+    private GUI gui;
+    private static Connection conn;
 
-        String databaseName = props.getProperty("DATABASE_NAME");
-        String databaseUser = props.getProperty("DATABASE_USER");
-        String databasePassword = props.getProperty("DATABASE_PASSWORD");
-        String databaseUrl = String.format(props.getProperty("DATABASE_URL") + "%s", databaseName);
+    private DefaultTableModel model;
+    private JTable table;
+    private TableRowSorter<DefaultTableModel> sorter;
 
-        try {
-            conn = DriverManager.getConnection(databaseUrl, databaseUser, databasePassword);
-        } catch (SQLException e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
-            System.exit(0);
-        }
+    // Right side components (Detail View)
+    private JLabel customerLabel;
+    private JLabel pointsLabel;
+    private JTextArea receiptArea;
+
+    public Transactions(GUI gui) {
+        this.gui = gui;
+        setLayout(new BorderLayout());
+
+        createTopBar();
+        createMainContent(); 
+        
+        loadTableData();
     }
 
-    private static void CloseConnection() {
-        //closing the connection
-        try {
-            conn.close();
-            JOptionPane.showMessageDialog(null, "Connection Closed.");
-        } catch (HeadlessException | SQLException e) {
-            JOptionPane.showMessageDialog(null, "Connection NOT Closed.");
-        }
+    private void createTopBar() {
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        JButton backButton = new JButton("Menu");
+        backButton.addActionListener(e -> gui.showScreen("MAIN"));
+        topBar.add(backButton);
+
+        JTextField searchField = new JTextField(15);
+        topBar.add(new JLabel("Search:"));
+        topBar.add(searchField);
+
+        add(topBar, BorderLayout.NORTH);
+
+        searchField.getDocument().addDocumentListener(
+            (SimpleDocumentListener) () -> applyFilter(searchField)
+        );
     }
 
-    private static ResultSet GetInventory() {
-        try {
-            //create a statement object
-            Statement stmt = conn.createStatement();
+    private void createMainContent() {
+        // Left Table
+        model = new DefaultTableModel(COLUMNS, 0);
+        table = new JTable(model);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
 
-            //create a SQL statement
-            String sqlStatement = "SELECT * FROM inventory";
+        JScrollPane tableScroll = new JScrollPane(table);
 
-            //send statement to DBMS
-            return stmt.executeQuery(sqlStatement);
+        // Right Detail Panel (Figma Gray Area)
+        JPanel detailPanel = new JPanel();
+        detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+        detailPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        detailPanel.setBackground(Color.LIGHT_GRAY);
 
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
-        }
-        return null;
-    }
+        customerLabel = new JLabel("Customer Name: -");
+        pointsLabel = new JLabel("Points: -");
+        receiptArea = new JTextArea(15, 20);
+        receiptArea.setEditable(false);
 
-    public static JPanel ShowGUI(GUI screen) {
-        GetConnection();
-        // create a panel
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        detailPanel.add(customerLabel);
+        detailPanel.add(pointsLabel);
+        detailPanel.add(new JScrollPane(receiptArea));
+        
+        JButton printButton = new JButton("Print Receipt");
+        detailPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        detailPanel.add(printButton);
 
-        String display = "";
-        ResultSet result = GetInventory();
+        // Split Pane to hold both
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tableScroll, detailPanel);
+        splitPane.setDividerLocation(400);
+        add(splitPane, BorderLayout.CENTER);
 
-        try {
-            while (result.next()) {
-                display += result.getString("name") + " " + result.getString("amount") + "\n";
+        // Selection Logic: Update right side when a row is clicked
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
+                int modelRow = table.convertRowIndexToModel(table.getSelectedRow());
+                Object transactionId = model.getValueAt(modelRow, 0);
+                loadTransactionDetails(transactionId);
             }
-        } catch (Exception e) {
-            System.exit(1);
+        });
+    }
+
+    private void loadTransactionDetails(Object transactionId) {
+        // Here you would run a query like: 
+        // SELECT * FROM transaction_items WHERE transaction_id = ?
+        customerLabel.setText("Customer Name: " + model.getValueAt(table.getSelectedRow(), 1));
+        receiptArea.setText("Items for Transaction #" + transactionId + "\n------------------\nItem 1... $0.00\nAdd-on...");
+    }
+
+    private void applyFilter(JTextField searchField) {
+        String text = searchField.getText();
+        sorter.setRowFilter(text.isEmpty() ? null : RowFilter.regexFilter("(?i)" + text));
+    }
+
+    private void loadTableData() {
+        model.setRowCount(0);
+        getConnection();
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(TABLE_QUERY)) {
+            while (rs.next()) {
+                model.addRow(new Object[]{ rs.getObject(1), rs.getObject(2), rs.getObject(3) });
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error loading data: " + e.getMessage());
         }
+    }
 
-        JTextArea textArea = new JTextArea();
-        textArea.setText(display);
-        textArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        panel.add(scrollPane);
+    private static void getConnection() {
+        if (conn != null) return; 
+        Properties props = new Properties();
+        try (FileInputStream in = new FileInputStream(".env")) {
+            props.load(in);
+            String url = props.getProperty("DATABASE_URL") + props.getProperty("DATABASE_NAME");
+            conn = DriverManager.getConnection(url, props.getProperty("DATABASE_USER"), props.getProperty("DATABASE_PASSWORD"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-        CloseConnection();
-
-        return panel;
+    @FunctionalInterface
+    interface SimpleDocumentListener extends javax.swing.event.DocumentListener {
+        void update();
+        default void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+        default void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+        default void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
     }
 }
