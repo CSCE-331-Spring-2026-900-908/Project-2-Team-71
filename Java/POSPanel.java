@@ -8,7 +8,7 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.table.*;
 
-public class POSScreen extends JPanel {
+public class POSPanel extends JPanel {
 
     private final GUI gui;
     private Connection conn;
@@ -34,7 +34,7 @@ public class POSScreen extends JPanel {
     private Integer cashierId = null;
     private String cashierName = null;
 
-    public POSScreen(GUI gui) {
+    public POSPanel(GUI gui) {
         this.gui = gui;
         getConnection();
 

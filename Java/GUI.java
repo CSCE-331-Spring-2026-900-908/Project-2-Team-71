@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import javax.swing.*;
 
@@ -16,18 +17,22 @@ public class GUI extends JFrame {
         container = new JPanel(cardLayout);
 
         // Create screens
-        MainMenuPanel menuPanel = new MainMenuPanel(this);
+        MainMenuPanel mainMenuPanel = new MainMenuPanel(this);
         InventoryPanel inventoryPanel = new InventoryPanel(this);
         PurchasesPanel purchasesPanel = new PurchasesPanel(this);
         TransactionsPanel transactionsPanel = new TransactionsPanel(this);
-        POSScreen posScreen = new POSScreen(this);
+        POSPanel posPanel = new POSPanel(this);
+        TrendsPanel trendsPanel = new TrendsPanel(this);
+        MenuPanel menuPanel = new MenuPanel(this);
 
         // Add screens to container
-        container.add(menuPanel, "MAIN");
+        container.add(mainMenuPanel, "MAIN");
         container.add(purchasesPanel, "Purchases");
+        container.add(menuPanel, "Menu");
         container.add(transactionsPanel, "Transaction");
         container.add(inventoryPanel, "Inventory");
-        container.add(posScreen, "POS");
+        container.add(posPanel, "POS");
+        container.add(trendsPanel, "Trends");
 
         add(container);
 
@@ -43,5 +48,3 @@ public class GUI extends JFrame {
         SwingUtilities.invokeLater(GUI::new);
     }
 }
-
-
