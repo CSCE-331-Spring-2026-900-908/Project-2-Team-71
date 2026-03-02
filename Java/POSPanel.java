@@ -344,7 +344,7 @@ public class POSPanel extends JPanel {
 
             String insertSql
                     = "INSERT INTO receipt (purchase_date, customer_id, cashier_id) "
-                    + "VALUES (CURRENT_DATE, ?, ?)";
+                    + "VALUES (CURRENT_TIMESTAMP, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setInt(1, customerId);
