@@ -171,16 +171,16 @@ private double taxAmount = 0.0;
 
         String sql = """
             SELECT id, name, phone, points
-            FROM customers
-            WHERE phone = ?
-               OR lower(name) LIKE lower(?)
+            FROM customer
+            WHERE phone LIKE ?
+               OR name LIKE ?
             ORDER BY id
             LIMIT 1
         """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, key);
-            ps.setString(2, "%" + key + "%");
+            ps.setString(1, "%" + key + "%");
+ps.setString(2, "%" + key + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -347,13 +347,14 @@ private double taxAmount = 0.0;
 
             String insertSql
                     = "INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount_id) "
-                    + "VALUES (CURRENT_DATE, ?, ?)";
+                    + "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setInt(1, customerId);
                 ps.setInt(2, cashierIdToUse);
-                ps.setString(3, paymentMethod);
-                ps.setDouble(4, taxAmount);   // store tax only not total
+                ps.setString(4, paymentMethod);
+                ps.setDouble(3, taxAmount);   // store tax only not total
+                ps.setInt(5, 5);
                 ps.executeUpdate();
             }
 

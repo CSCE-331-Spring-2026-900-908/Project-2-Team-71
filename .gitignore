@@ -1,3 +1,5 @@
 .env
 *.csv
 *.class
+
+psql -h csce-315-db.engr.tamu.edu -U team_71 -d team_71_db
