@@ -33,6 +33,18 @@ public class POSPanel extends JPanel {
 
     private Integer cashierId = null;
     private String cashierName = null;
+    private String paymentMethod = null;
+    private static final double TAX_RATE = 0.0825; // 8.25%
+    private double taxAmount = 0.0;
+
+    // discount
+    private double discountRate = 0.0;     // stored as fraction: 0.25 = 25%
+    private String discountType = null;    // e.g., "Student"
+    private JLabel discountStatusLabel;    // shows applied discount in UI
+    private JButton applyDiscountButton;
+
+    // total display
+    private double finalTotal = 0.0;
 
     public POSPanel(GUI gui) {
         this.gui = gui;
@@ -168,16 +180,16 @@ public class POSPanel extends JPanel {
 
         String sql = """
             SELECT id, name, phone, points
-            FROM customers
-            WHERE phone = ?
-               OR lower(name) LIKE lower(?)
+            FROM customer
+            WHERE phone LIKE ?
+               OR name LIKE ?
             ORDER BY id
             LIMIT 1
         """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, key);
-            ps.setString(2, "%" + key + "%");
+            ps.setString(1, "%" + key + "%");
+ps.setString(2, "%" + key + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -246,6 +258,21 @@ public class POSPanel extends JPanel {
         totalLabel = new JLabel("$0.00", SwingConstants.RIGHT);
         totalRow.add(totalLabel, BorderLayout.EAST);
 
+        //////////// disocunt logic ///////////////////////
+        applyDiscountButton = new JButton("Apply Discount");
+        applyDiscountButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        applyDiscountButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        applyDiscountButton.addActionListener(e -> applyDiscount());
+
+        discountStatusLabel = new JLabel("Discount: (none)");
+        discountStatusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        panel.add(applyDiscountButton);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(discountStatusLabel);
+        panel.add(Box.createVerticalStrut(10));
+        //////////////////////////////////////////////
+
         checkoutButton = new JButton("Check out");
         checkoutButton.setFont(checkoutButton.getFont().deriveFont(20f));
         checkoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -300,6 +327,75 @@ public class POSPanel extends JPanel {
         return panel;
     }
 
+    private void applyDiscount() {
+        String typed = JOptionPane.showInputDialog(this, "Enter discount type (e.g., Student):");
+        if (typed == null) return;
+        typed = typed.trim();
+        if (typed.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Discount type cannot be empty.");
+            return;
+        }
+
+        ensureConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "No DB connection.");
+            return;
+        }
+
+        String sql = "SELECT type, amount FROM discount WHERE type ILIKE ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, typed);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(this, "No discount found for type: " + typed);
+                    return;
+                }
+
+                String dbType = rs.getString("type");
+                double amt = rs.getDouble("amount");
+
+                // Robust handling:
+                // if DB stores 25 => treat as 25% => 0.25
+                // if DB stores 0.25 => treat as 25% already
+                double rate = (amt >= 1.0) ? (amt / 100.0) : amt;
+
+                // Clamp to sane range
+                if (rate < 0.0) rate = 0.0;
+                if (rate > 1.0) rate = 1.0;
+
+                discountType = dbType;
+                discountRate = rate;
+
+                discountStatusLabel.setText(
+                        "Discount: " + discountType + " (" + String.format("%.0f", discountRate * 100) + "%)"
+                );
+
+                recalcAndUpdateTotalLabel();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Discount lookup error: " + ex.getMessage());
+        }
+    }
+
+    private static double round2(double x) {
+    return Math.round(x * 100.0) / 100.0;
+}
+
+private void recalcAndUpdateTotalLabel() {
+    // 'total' is your running subtotal from cart items
+    double subtotal = total;
+
+    double discountAmount = subtotal * discountRate;
+    double discountedSubtotal = subtotal - discountAmount;
+
+    taxAmount = round2(discountedSubtotal * TAX_RATE);
+    finalTotal = round2(discountedSubtotal + taxAmount);
+
+    totalLabel.setText(String.format("$%.2f", finalTotal));
+}
+
     public void addToCartWithId(String type, int id, String itemName, String options, double price) {
 
         cartModel.addRow(new Object[]{
@@ -311,7 +407,7 @@ public class POSPanel extends JPanel {
         });
 
         total += price;
-        updateTotalLabel();
+        recalcAndUpdateTotalLabel();
     }
 
     private void insertReceiptRow() {
@@ -343,12 +439,15 @@ public class POSPanel extends JPanel {
             }
 
             String insertSql
-                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id) "
-                    + "VALUES (CURRENT_TIMESTAMP, ?, ?)";
+                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount) "
+                    + "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setInt(1, customerId);
                 ps.setInt(2, cashierIdToUse);
+                ps.setString(4, paymentMethod);
+                ps.setDouble(3, taxAmount);   // store tax only not total
+                ps.setDouble(5, discountRate);
                 ps.executeUpdate();
             }
 
@@ -435,14 +534,79 @@ public class POSPanel extends JPanel {
             return;
         }
 
+        recalcAndUpdateTotalLabel(); //ensure ttoal is most recpet update
+
+        // Calculate tax
+        taxAmount = total * TAX_RATE;
+        double finalTotal = total + taxAmount;
+
+        String method = promptForPaymentMethod();
+        if (method == null) {
+            return; // user cancelled / closed / invalid
+        }
+
+        this.paymentMethod = method;
+
+        double subtotal = total;
+        double discountAmount = subtotal * discountRate;
+        double discountedSubtotal = subtotal - discountAmount;
+        taxAmount = round2(discountedSubtotal * TAX_RATE);
+        finalTotal = round2(discountedSubtotal + taxAmount);
+
         JOptionPane.showMessageDialog(this,
-                "Tap card now.\nTotal: " + totalLabel.getText());
+            "Subtotal: $" + String.format("%.2f", subtotal) +
+            "\nDiscount: $" + String.format("%.2f", discountAmount) +
+            (discountType != null ? " (" + discountType + ")" : "") +
+            "\nTax: $" + String.format("%.2f", taxAmount) +
+            "\nTotal: $" + String.format("%.2f", finalTotal) +
+            "\n\nPayment method: " + method
+        );
 
         insertReceiptRow(); //inser into sql
         // Clear cart after payment
         cartModel.setRowCount(0);
         total = 0.0;
-        updateTotalLabel();
+        discountRate = 0.0;
+        discountType = null;
+        taxAmount = 0.0;
+        finalTotal = 0.0;
+        this.paymentMethod = null;
+
+        if (discountStatusLabel != null) discountStatusLabel.setText("Discount: (none)");
+        totalLabel.setText("$0.00");
+    }
+
+    private String promptForPaymentMethod() {
+        String[] options = {"Cash", "Card", "Other", "Cancel"};
+
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Select a payment method:",
+                "Payment Method",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[1] // default = Card
+        );
+
+        if (choice == 3 || choice == JOptionPane.CLOSED_OPTION) { // Cancel or X
+            return null;
+        }
+
+        if (choice == 2) { // Other
+            String typed = JOptionPane.showInputDialog(this, "Enter payment method:");
+            if (typed == null) return null; // user canceled
+            typed = typed.trim();
+            if (typed.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Payment method cannot be empty.");
+                return null;
+            }
+            return typed;
+        }
+
+        // Cash or Card
+        return options[choice];
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
