@@ -35,7 +35,16 @@ public class POSPanel extends JPanel {
     private String cashierName = null;
     private String paymentMethod = null;
     private static final double TAX_RATE = 0.0825; // 8.25%
-private double taxAmount = 0.0;
+    private double taxAmount = 0.0;
+
+    // discount
+    private double discountRate = 0.0;     // stored as fraction: 0.25 = 25%
+    private String discountType = null;    // e.g., "Student"
+    private JLabel discountStatusLabel;    // shows applied discount in UI
+    private JButton applyDiscountButton;
+
+    // total display
+    private double finalTotal = 0.0;
 
     public POSPanel(GUI gui) {
         this.gui = gui;
@@ -249,6 +258,21 @@ ps.setString(2, "%" + key + "%");
         totalLabel = new JLabel("$0.00", SwingConstants.RIGHT);
         totalRow.add(totalLabel, BorderLayout.EAST);
 
+        //////////// disocunt logic ///////////////////////
+        applyDiscountButton = new JButton("Apply Discount");
+        applyDiscountButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        applyDiscountButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        applyDiscountButton.addActionListener(e -> applyDiscount());
+
+        discountStatusLabel = new JLabel("Discount: (none)");
+        discountStatusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        panel.add(applyDiscountButton);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(discountStatusLabel);
+        panel.add(Box.createVerticalStrut(10));
+        //////////////////////////////////////////////
+
         checkoutButton = new JButton("Check out");
         checkoutButton.setFont(checkoutButton.getFont().deriveFont(20f));
         checkoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -303,6 +327,75 @@ ps.setString(2, "%" + key + "%");
         return panel;
     }
 
+    private void applyDiscount() {
+        String typed = JOptionPane.showInputDialog(this, "Enter discount type (e.g., Student):");
+        if (typed == null) return;
+        typed = typed.trim();
+        if (typed.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Discount type cannot be empty.");
+            return;
+        }
+
+        ensureConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(this, "No DB connection.");
+            return;
+        }
+
+        String sql = "SELECT type, amount FROM discount WHERE type ILIKE ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, typed);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    JOptionPane.showMessageDialog(this, "No discount found for type: " + typed);
+                    return;
+                }
+
+                String dbType = rs.getString("type");
+                double amt = rs.getDouble("amount");
+
+                // Robust handling:
+                // if DB stores 25 => treat as 25% => 0.25
+                // if DB stores 0.25 => treat as 25% already
+                double rate = (amt >= 1.0) ? (amt / 100.0) : amt;
+
+                // Clamp to sane range
+                if (rate < 0.0) rate = 0.0;
+                if (rate > 1.0) rate = 1.0;
+
+                discountType = dbType;
+                discountRate = rate;
+
+                discountStatusLabel.setText(
+                        "Discount: " + discountType + " (" + String.format("%.0f", discountRate * 100) + "%)"
+                );
+
+                recalcAndUpdateTotalLabel();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Discount lookup error: " + ex.getMessage());
+        }
+    }
+
+    private static double round2(double x) {
+    return Math.round(x * 100.0) / 100.0;
+}
+
+private void recalcAndUpdateTotalLabel() {
+    // 'total' is your running subtotal from cart items
+    double subtotal = total;
+
+    double discountAmount = subtotal * discountRate;
+    double discountedSubtotal = subtotal - discountAmount;
+
+    taxAmount = round2(discountedSubtotal * TAX_RATE);
+    finalTotal = round2(discountedSubtotal + taxAmount);
+
+    totalLabel.setText(String.format("$%.2f", finalTotal));
+}
+
     public void addToCartWithId(String type, int id, String itemName, String options, double price) {
 
         cartModel.addRow(new Object[]{
@@ -314,10 +407,10 @@ ps.setString(2, "%" + key + "%");
         });
 
         total += price;
-        updateTotalLabel();
+        recalcAndUpdateTotalLabel();
     }
 
-    private void insertReceiptRow(double finalTotal) {
+    private void insertReceiptRow() {
         ensureConnection();
         if (conn == null) {
             JOptionPane.showMessageDialog(this, "No DB connection.");
@@ -346,7 +439,7 @@ ps.setString(2, "%" + key + "%");
             }
 
             String insertSql
-                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount_id) "
+                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount) "
                     + "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
 
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
@@ -354,7 +447,7 @@ ps.setString(2, "%" + key + "%");
                 ps.setInt(2, cashierIdToUse);
                 ps.setString(4, paymentMethod);
                 ps.setDouble(3, taxAmount);   // store tax only not total
-                ps.setInt(5, 5);
+                ps.setDouble(5, discountRate);
                 ps.executeUpdate();
             }
 
@@ -441,6 +534,8 @@ ps.setString(2, "%" + key + "%");
             return;
         }
 
+        recalcAndUpdateTotalLabel(); //ensure ttoal is most recpet update
+
         // Calculate tax
         taxAmount = total * TAX_RATE;
         double finalTotal = total + taxAmount;
@@ -452,20 +547,33 @@ ps.setString(2, "%" + key + "%");
 
         this.paymentMethod = method;
 
+        double subtotal = total;
+        double discountAmount = subtotal * discountRate;
+        double discountedSubtotal = subtotal - discountAmount;
+        taxAmount = round2(discountedSubtotal * TAX_RATE);
+        finalTotal = round2(discountedSubtotal + taxAmount);
+
         JOptionPane.showMessageDialog(this,
-            "Subtotal: $" + String.format("%.2f", total) +
-            "\nTax (8.25%): $" + String.format("%.2f", taxAmount) +
+            "Subtotal: $" + String.format("%.2f", subtotal) +
+            "\nDiscount: $" + String.format("%.2f", discountAmount) +
+            (discountType != null ? " (" + discountType + ")" : "") +
+            "\nTax: $" + String.format("%.2f", taxAmount) +
             "\nTotal: $" + String.format("%.2f", finalTotal) +
             "\n\nPayment method: " + method
         );
 
-        insertReceiptRow(finalTotal); //inser into sql
+        insertReceiptRow(); //inser into sql
         // Clear cart after payment
         cartModel.setRowCount(0);
         total = 0.0;
+        discountRate = 0.0;
+        discountType = null;
         taxAmount = 0.0;
+        finalTotal = 0.0;
         this.paymentMethod = null;
-        updateTotalLabel();
+
+        if (discountStatusLabel != null) discountStatusLabel.setText("Discount: (none)");
+        totalLabel.setText("$0.00");
     }
 
     private String promptForPaymentMethod() {
