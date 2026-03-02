@@ -1,4 +1,7 @@
-import java.awt.GridLayout;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -34,52 +37,52 @@ public class TrendsPanel extends JPanel {
 
     public TrendsPanel(GUI gui) {
         //this.gui = gui;
-
-        //add scroll panel
-        
-        
-        
-        //GridBagConstraints constraints = new GridBagConstraints();
+        setLayout(new BorderLayout());
 
         // Create button to navigate back to main menu
-        JButton openMain = new JButton("Main Menu");
-        openMain.addActionListener(e -> gui.showScreen("MAIN"));
-        
-        //constraints.anchor = GridBagConstraints.FIRST_LINE_START;
-        //constraints.weightx = 0.5;
-        //constraints.fill = GridBagConstraints.HORIZONTAL;
-        //constraints.gridx = 0;
-        //constraints.gridy = 0;
-
-
-        add(openMain);
+        // make menu button like the rest of the pages
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton backButton = new JButton("Menu");
+        backButton.addActionListener(e -> gui.showScreen("MAIN"));
+        topBar.add(backButton);
+        add(topBar, BorderLayout.NORTH);
 
 
         // add four different graphs //
         JPanel graphPanel = new JPanel();
-        //JScrollBar scrollPane = new JScrollBar();
-        //graphPanel.add(scrollPane);
-
-        //graphPanel.add(scrollPane);
-        graphPanel.setLayout(new GridLayout(2,2, 2,2));
+        graphPanel.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
 
         // Pie chart for showing most popular drinks
         ChartPanel piChart = SetUpPiChart();
-        graphPanel.add(piChart);
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridheight = 20;
+        constraints.fill = GridBagConstraints.VERTICAL;
+        graphPanel.add(piChart, constraints);
 
         // Bar chart for showing monthly revenue
         ChartPanel barChart = SetUpBarChart();
-        graphPanel.add(barChart);
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        constraints.gridheight = 20;
+        graphPanel.add(barChart, constraints);
 
         // line chart to show monthly number of sales
         ChartPanel lineChart = SetUpLineChart();
-        graphPanel.add(lineChart);
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        constraints.gridheight = 20;
+        graphPanel.add(lineChart, constraints);
 
         // Show busy time trends
         ChartPanel timeChart = SetUpTimeChart();
-        graphPanel.add(timeChart);
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        constraints.gridheight = 20;
+        graphPanel.add(timeChart, constraints);
 
-        add(graphPanel);
+        add(graphPanel, BorderLayout.CENTER);
     }
 
 
