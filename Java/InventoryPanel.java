@@ -176,14 +176,17 @@ public class InventoryPanel extends JPanel {
         });
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
             public void insertUpdate(DocumentEvent e) {
                 refreshData(searchField.getText());
             }
 
+            @Override
             public void removeUpdate(DocumentEvent e) {
                 refreshData(searchField.getText());
             }
 
+            @Override
             public void changedUpdate(DocumentEvent e) {
                 refreshData(searchField.getText());
             }

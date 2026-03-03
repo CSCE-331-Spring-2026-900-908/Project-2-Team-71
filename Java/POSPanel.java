@@ -169,10 +169,6 @@ public class POSPanel extends JPanel {
 
         ensureConnection();
 
-        if (conn != null) {
-            System.err.println("WORK");
-        }
-
         if (conn == null) {
             JOptionPane.showMessageDialog(this, "No DB connection (conn is null).");
             return;
@@ -189,7 +185,7 @@ public class POSPanel extends JPanel {
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, "%" + key + "%");
-ps.setString(2, "%" + key + "%");
+            ps.setString(2, "%" + key + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -329,7 +325,9 @@ ps.setString(2, "%" + key + "%");
 
     private void applyDiscount() {
         String typed = JOptionPane.showInputDialog(this, "Enter discount type (e.g., Student):");
-        if (typed == null) return;
+        if (typed == null) {
+            return;
+        }
         typed = typed.trim();
         if (typed.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Discount type cannot be empty.");
@@ -362,8 +360,12 @@ ps.setString(2, "%" + key + "%");
                 double rate = (amt >= 1.0) ? (amt / 100.0) : amt;
 
                 // Clamp to sane range
-                if (rate < 0.0) rate = 0.0;
-                if (rate > 1.0) rate = 1.0;
+                if (rate < 0.0) {
+                    rate = 0.0;
+                }
+                if (rate > 1.0) {
+                    rate = 1.0;
+                }
 
                 discountType = dbType;
                 discountRate = rate;
@@ -380,21 +382,21 @@ ps.setString(2, "%" + key + "%");
     }
 
     private static double round2(double x) {
-    return Math.round(x * 100.0) / 100.0;
-}
+        return Math.round(x * 100.0) / 100.0;
+    }
 
-private void recalcAndUpdateTotalLabel() {
-    // 'total' is your running subtotal from cart items
-    double subtotal = total;
+    private void recalcAndUpdateTotalLabel() {
+        // 'total' is your running subtotal from cart items
+        double subtotal = total;
 
-    double discountAmount = subtotal * discountRate;
-    double discountedSubtotal = subtotal - discountAmount;
+        double discountAmount = subtotal * discountRate;
+        double discountedSubtotal = subtotal - discountAmount;
 
-    taxAmount = round2(discountedSubtotal * TAX_RATE);
-    finalTotal = round2(discountedSubtotal + taxAmount);
+        taxAmount = round2(discountedSubtotal * TAX_RATE);
+        finalTotal = round2(discountedSubtotal + taxAmount);
 
-    totalLabel.setText(String.format("$%.2f", finalTotal));
-}
+        totalLabel.setText(String.format("$%.2f", finalTotal));
+    }
 
     public void addToCartWithId(String type, int id, String itemName, String options, double price) {
 
@@ -410,63 +412,90 @@ private void recalcAndUpdateTotalLabel() {
         recalcAndUpdateTotalLabel();
     }
 
-    private void insertReceiptRow() {
-        ensureConnection();
-        if (conn == null) {
-            JOptionPane.showMessageDialog(this, "No DB connection.");
-            return;
+    private int insertReceiptRow() throws SQLException {
+        String sql = """
+        INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount)
+        VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)
+        RETURNING id
+    """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int customerId = 0;
+            String custText = idValue.getText().trim();
+            if (!custText.equals("-") && custText.matches("\\d+")) {
+                customerId = Integer.parseInt(custText);
+            }
+
+            ps.setInt(1, customerId);
+            ps.setInt(2, cashierId != null ? cashierId : 0);
+            ps.setDouble(3, taxAmount);
+            ps.setString(4, paymentMethod);
+            ps.setDouble(5, discountRate);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            return rs.getInt("id");
         }
+    }
 
-        // customer id from the UI label (default to 0 if not selected)
-        int customerId = 0;
-        String custText = (idValue == null) ? "-" : idValue.getText().trim();
-        if (!custText.equals("-") && custText.matches("\\d+")) {
-            customerId = Integer.parseInt(custText);
+    private void insertCartItems(int receiptId) throws SQLException {
+
+        String foodSql = "INSERT INTO food_to_receipt (receipt_id, food_id) VALUES (?, ?)";
+        String drinkSql = """
+        INSERT INTO drink_to_receipt 
+        (receipt_id, drink_id, ice, sweetness, milk, boba, popping_boba)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """;
+
+        for (int i = 0; i < cartModel.getRowCount(); i++) {
+
+            String type = (String) cartModel.getValueAt(i, 0);
+            int itemId = (int) cartModel.getValueAt(i, 1);
+            String options = (String) cartModel.getValueAt(i, 3);
+
+            if (type.equals("Food")) {
+
+                try (PreparedStatement ps = conn.prepareStatement(foodSql)) {
+                    ps.setInt(1, receiptId);
+                    ps.setInt(2, itemId);
+                    ps.executeUpdate();
+                }
+
+            } else if (type.equals("Drink")) {
+
+                // Extract options
+                String ice = extractOption(options, "Ice:");
+                int sweet = Integer.parseInt(extractOption(options, "Sweet:").replace("%", ""));
+                String milk = extractOption(options, "Milk:");
+                boolean boba = options.contains("Boba: Yes");
+                boolean popping = options.contains("Pop: Yes");
+
+                try (PreparedStatement ps = conn.prepareStatement(drinkSql)) {
+                    ps.setInt(1, receiptId);
+                    ps.setInt(2, itemId);
+                    ps.setString(3, ice);
+                    ps.setInt(4, sweet);
+                    ps.setString(5, milk);
+                    ps.setBoolean(6, boba);
+                    ps.setBoolean(7, popping);
+                    ps.executeUpdate();
+                }
+            }
         }
+    }
 
-        // cashier id: if you added cashier sign-in fields, use that; otherwise default 0
-        int cashierIdToUse = 0;
-        // If you have `private Integer cashierId;` in POSScreen, uncomment next 2 lines:
-        // if (cashierId != null) cashierIdToUse = cashierId;
-        // else cashierIdToUse = 0;
-
-        try {
-            conn.setAutoCommit(false);
-
-            // Prevent overlapping receipt_id when multiple checkouts happen
-            try (Statement lockStmt = conn.createStatement()) {
-                lockStmt.execute("LOCK TABLE receipt IN EXCLUSIVE MODE");
-            }
-
-            String insertSql
-                    = "INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount) "
-                    + "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
-
-            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                ps.setInt(1, customerId);
-                ps.setInt(2, cashierIdToUse);
-                ps.setString(4, paymentMethod);
-                ps.setDouble(3, taxAmount);   // store tax only not total
-                ps.setDouble(5, discountRate);
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            conn.setAutoCommit(true);
-
-            // Optional: show the generated receipt id
-            // JOptionPane.showMessageDialog(this, "Receipt saved. ID: " + nextId);
-        } catch (SQLException ex) {
-            try {
-                conn.rollback();
-            } catch (SQLException ignored) {
-            }
-            try {
-                conn.setAutoCommit(true);
-            } catch (SQLException ignored) {
-            }
-            JOptionPane.showMessageDialog(this, "Receipt insert failed: " + ex.getMessage());
+    private String extractOption(String options, String key) {
+        int start = options.indexOf(key);
+        if (start == -1) {
+            return "";
         }
+        start += key.length();
+        int end = options.indexOf(",", start);
+        if (end == -1) {
+            end = options.length();
+        }
+        return options.substring(start, end).trim();
     }
 
     private void setCashierFromId() {
@@ -510,20 +539,6 @@ private void recalcAndUpdateTotalLabel() {
         }
     }
 
-    public void addToCart(String itemName, double price) {
-        addToCart(itemName, "-", price);
-    }
-
-    public void addToCart(String itemName, String options, double price) {
-        cartModel.addRow(new Object[]{
-            itemName,
-            options,
-            String.format("$%.2f", price)
-        });
-        total += price;
-        updateTotalLabel();
-    }
-
     private void updateTotalLabel() {
         totalLabel.setText(String.format("$%.2f", total));
     }
@@ -554,15 +569,31 @@ private void recalcAndUpdateTotalLabel() {
         finalTotal = round2(discountedSubtotal + taxAmount);
 
         JOptionPane.showMessageDialog(this,
-            "Subtotal: $" + String.format("%.2f", subtotal) +
-            "\nDiscount: $" + String.format("%.2f", discountAmount) +
-            (discountType != null ? " (" + discountType + ")" : "") +
-            "\nTax: $" + String.format("%.2f", taxAmount) +
-            "\nTotal: $" + String.format("%.2f", finalTotal) +
-            "\n\nPayment method: " + method
+                "Subtotal: $" + String.format("%.2f", subtotal)
+                + "\nDiscount: $" + String.format("%.2f", discountAmount)
+                + (discountType != null ? " (" + discountType + ")" : "")
+                + "\nTax: $" + String.format("%.2f", taxAmount)
+                + "\nTotal: $" + String.format("%.2f", finalTotal)
+                + "\n\nPayment method: " + method
         );
 
-        insertReceiptRow(); //inser into sql
+        try {
+            conn.setAutoCommit(false);
+
+            int receiptId = insertReceiptRow();
+            insertCartItems(receiptId);
+
+            conn.commit();
+            conn.setAutoCommit(true);
+
+        } catch (SQLException ex) {
+            try {
+                conn.rollback();
+            } catch (Exception ignored) {
+            }
+            JOptionPane.showMessageDialog(this, "Checkout failed: " + ex.getMessage());
+        }
+
         // Clear cart after payment
         cartModel.setRowCount(0);
         total = 0.0;
@@ -572,7 +603,9 @@ private void recalcAndUpdateTotalLabel() {
         finalTotal = 0.0;
         this.paymentMethod = null;
 
-        if (discountStatusLabel != null) discountStatusLabel.setText("Discount: (none)");
+        if (discountStatusLabel != null) {
+            discountStatusLabel.setText("Discount: (none)");
+        }
         totalLabel.setText("$0.00");
     }
 
@@ -596,7 +629,10 @@ private void recalcAndUpdateTotalLabel() {
 
         if (choice == 2) { // Other
             String typed = JOptionPane.showInputDialog(this, "Enter payment method:");
-            if (typed == null) return null; // user canceled
+            if (typed == null) {
+                return null; // user canceled
+
+            }
             typed = typed.trim();
             if (typed.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Payment method cannot be empty.");
@@ -700,7 +736,7 @@ private void recalcAndUpdateTotalLabel() {
         String sqlByName = """
             SELECT 'Drink' AS type, id, name, price FROM drink WHERE name ILIKE ?
             UNION ALL
-            SELECT 'Food'  AS type, id, name, price FROM food   WHERE name ILIKE ?
+            SELECT 'Food'  AS type, id, name, price FROM food WHERE name ILIKE ?
             ORDER BY type, name
             LIMIT 50
         """;
@@ -801,12 +837,12 @@ private void recalcAndUpdateTotalLabel() {
         @Override
         public Object getCellEditorValue() {
             if (clicked) {
+                int id = (int) resultsModel.getValueAt(row, 1);
                 String name = (String) resultsModel.getValueAt(row, 2);
                 String priceText = (String) resultsModel.getValueAt(row, 3);
                 double price = Double.parseDouble(priceText.replace("$", ""));
 
-                // This should already exist from your checkout section
-                addToCart(name, price);
+                addToCartWithId("Food", id, name, "", price);
             }
             clicked = false;
             return "Add";

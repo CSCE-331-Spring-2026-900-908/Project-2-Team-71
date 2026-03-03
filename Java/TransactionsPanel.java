@@ -75,6 +75,10 @@ public class TransactionsPanel extends JPanel {
         backButton.addActionListener(e -> gui.showScreen("MAIN"));
         topBar.add(backButton);
 
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(e -> refreshTable());
+        topBar.add(refreshButton);
+
         JTextField searchField = new JTextField(15);
         topBar.add(new JLabel("Search:"));
         topBar.add(searchField);
@@ -130,11 +134,26 @@ public class TransactionsPanel extends JPanel {
         });
     }
 
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        refreshTable();
+    }
+
+    private void refreshTable() {
+        table.clearSelection();
+        receiptArea.setText("");
+        customerLabel.setText("Customer Name: -");
+        pointsLabel.setText("Points: -");
+
+        model.setRowCount(0);
+        loadTableData();
+    }
+
     private void loadTransactionDetails(Object transactionId) {
 
-        int receiptId = (int) transactionId;
+        int receiptId = ((Number) transactionId).intValue();
 
-        // Update customer label
         int modelRow = table.convertRowIndexToModel(table.getSelectedRow());
         customerLabel.setText("Customer Name: " + model.getValueAt(modelRow, 1));
 
@@ -150,23 +169,24 @@ public class TransactionsPanel extends JPanel {
             receiptArea.append("Receipt #" + receiptId + "\n");
             receiptArea.append("----------------------------------\n");
 
+            double total = 0;
+
             while (rs.next()) {
                 String name = rs.getString("item_name");
                 double price = rs.getDouble("price");
-
                 String details = rs.getString("details");
+
+                total += price;
 
                 receiptArea.append(String.format("%-20s $%.2f\n", name, price));
 
                 if (details != null && !details.isBlank()) {
                     receiptArea.append("   -> " + details + "\n");
                 }
-
-                receiptArea.append(String.format("%-20s $%.2f\n", name, price));
             }
 
             receiptArea.append("----------------------------------\n");
-            receiptArea.append(String.format("TOTAL: $%.2f\n", model.getValueAt(modelRow, 2)));
+            receiptArea.append(String.format("TOTAL: $%.2f\n", total));
 
         } catch (SQLException e) {
             receiptArea.setText("Error loading receipt: " + e.getMessage());
