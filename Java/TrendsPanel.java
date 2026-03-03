@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -16,6 +17,7 @@ import java.util.Properties;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -44,12 +46,22 @@ public class TrendsPanel extends JPanel {
         //this.gui = gui;
         setLayout(new BorderLayout());
 
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel graphPanel = new JPanel();
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
         // Create button to navigate back to main menu
         // make menu button like the rest of the pages
-        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton backButton = new JButton("Menu");
         backButton.addActionListener(e -> gui.showScreen("MAIN"));
         topBar.add(backButton);
+
+        // Create a button to display graphs for all time data
+        // it will populate the date fields to include all the data
+        JButton allTimeButton = new JButton("All Time");
+        allTimeButton.addActionListener(e -> LoadAllTime(graphPanel));
+        topBar.add(allTimeButton);
+
 
         // Create field to enter time frame of interest
         // This information will be fed into the graphs
@@ -73,7 +85,6 @@ public class TrendsPanel extends JPanel {
 
 
         // add four different graphs //
-        JPanel graphPanel = new JPanel();
         graphPanel.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
@@ -125,7 +136,6 @@ public class TrendsPanel extends JPanel {
 
 
         // create bottom bar to display current graph time frame
-        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER));
         String timeString = "January 21, 2025 - March 21, 2025";
         JLabel timeFrame = new JLabel(timeString);
         timeFrame.setBorder(BorderFactory.createLineBorder(Color.blue, 2));
@@ -136,6 +146,8 @@ public class TrendsPanel extends JPanel {
 
 
 
+
+    
 
     private static ChartPanel SetUpPiChart() {
         ResultSet orderCount = GetDrinksAndFoodCount();
@@ -412,37 +424,63 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    // private static ResultSet GetYears() {
-    //     // finds avg number of receipts for each hour
-    //     try {
-    //         GetConnection();
+    private static ResultSet GetAllTime() {
+        // finds avg number of receipts for each hour
+        try {
+            GetConnection();
 
-    //         //create a statement object
-    //         Statement stmt = conn.createStatement();
+            //create a statement object
+            Statement stmt = conn.createStatement();
 
-    //         //create a SQL statement
-    //         String sqlStatement = """
-    //             SELECT AVG(orders) AS avg_receipts, hour
-    //             FROM (
-    //                 SELECT COUNT(id) AS orders, 
-    //                 DATE_PART('hour', purchase_date) AS hour, 
-    //                 DATE_PART('month', purchase_date) AS month, 
-    //                 DATE_PART('day', purchase_date) AS day
-    //                 FROM receipt
-    //                 GROUP BY hour, day, month
-    //             )
-    //             GROUP BY hour
-    //             ORDER BY hour ASC;
-    //         """;
+            //create a SQL statement
+            String sqlStatement = """
+                SELECT 
+                    DATE_PART('month', MIN(purchase_date)) AS month,
+                    DATE_PART('day', MIN(purchase_date)) AS day, 
+                    DATE_PART('year', MIN(purchase_date)) AS year
+                FROM receipt
+                UNION ALL
+                SELECT 
+                    DATE_PART('month', MAX(purchase_date)) AS month, 
+                    DATE_PART('day', MAX(purchase_date)) AS day, 
+                    DATE_PART('year', MAX(purchase_date)) AS year
+                FROM receipt;
+            """;
             
-    //         //send statement to DBMS
-    //         return stmt.executeQuery(sqlStatement);
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
 
-    //     } catch (SQLException e) {
-    //         JOptionPane.showMessageDialog(null, e.getMessage());
-    //     }
-    //     return null;
-    // }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
+    }
+
+
+    private static void LoadAllTime(JPanel graphPanel) {
+        // get oldest receipt and newest receipt dates
+        ResultSet allTimeSet = GetAllTime();
+        boolean oldestDate = true;
+        Component graphComponents[] = graphPanel.getComponents();
+        String startDate = "";
+        String endDate = "";
+        
+        try {
+            while (allTimeSet != null && allTimeSet.next()) {
+                if (oldestDate) {
+                    startDate = allTimeSet.getString("date");
+                    oldestDate = false;
+                }
+                else {
+                    endDate = allTimeSet.getString("date");
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+
+        redrawGraphs(graphPanel, startDate, endDate);
+    }
 
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
