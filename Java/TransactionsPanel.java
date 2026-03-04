@@ -175,13 +175,24 @@ public class TransactionsPanel extends JPanel {
                 String name = rs.getString("item_name");
                 double price = rs.getDouble("price");
                 String details = rs.getString("details");
+                String [] detailLines = details != null ? details.split(", ") : new String[0];
+                for (int i = 0; i < detailLines.length; i++) {
+                    if(detailLines[i].startsWith("Boba: true")) {
+                        price += 0.50; // Add boba cost
+                    } else if (detailLines[i].startsWith("Popping: true")) {
+                        price += 0.75; // Add popping boba cost
+                    }
+                }
 
                 total += price;
 
                 receiptArea.append(String.format("%-20s $%.2f\n", name, price));
 
                 if (details != null && !details.isBlank()) {
-                    receiptArea.append("   -> " + details + "\n");
+                    for (Object elem : detailLines) {
+                        receiptArea.append("\t" + elem + "\n");
+                    }
+                    
                 }
             }
 

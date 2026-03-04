@@ -10,14 +10,17 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Date;
 import java.util.List;
 import javax.swing.*;
 
-public class ZReportPanel extends JPanel {
+public class SalesReportPanel extends JPanel {
 
     // ==========================================================
     private final GUI gui;
     private static Connection conn;
+    private JSpinner startDateSpinner;
+    private JSpinner endDateSpinner;
 
     private static class SalesData {
 
@@ -43,23 +46,48 @@ public class ZReportPanel extends JPanel {
         double netSales;
     }
 
-    public ZReportPanel(GUI gui) {
+    public SalesReportPanel(GUI gui) {
         this.gui = gui;
         setLayout(new BorderLayout());
         getConnection();
 
         createTopBar();
 
-        JButton generateReportButton = new JButton("Generate Z-Report");
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new GridLayout(3, 2, 10, 10));
+
+        centerPanel.add(new JLabel("Start Date:"));
+        startDateSpinner = new JSpinner(new SpinnerDateModel());
+        startDateSpinner.setEditor(new JSpinner.DateEditor(startDateSpinner, "yyyy-MM-dd HH:mm:ss"));
+        centerPanel.add(startDateSpinner);
+
+        centerPanel.add(new JLabel("End Date:"));
+        endDateSpinner = new JSpinner(new SpinnerDateModel());
+        endDateSpinner.setEditor(new JSpinner.DateEditor(endDateSpinner, "yyyy-MM-dd HH:mm:ss"));
+        centerPanel.add(endDateSpinner);
+
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        startDateSpinner.setValue(cal.getTime());
+
+        endDateSpinner.setValue(new Date());
+
+        JButton generateReportButton = new JButton("Generate Sales Report");
         generateReportButton.addActionListener(e -> {
             try {
                 generateReport();
             } catch (SQLException ex) {
-                System.getLogger(ZReportPanel.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                ex.printStackTrace();
             }
         });
 
-        add(generateReportButton, BorderLayout.CENTER);
+        centerPanel.add(generateReportButton);
+
+        add(centerPanel, BorderLayout.CENTER);
     }
 
     // ===================== TOP BAR =====================
@@ -105,12 +133,10 @@ public class ZReportPanel extends JPanel {
 
     private void generateReport() throws SQLException {
 
-        conn.setAutoCommit(false);
-
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Generating a Z-Report will close all open transactions.\nContinue?",
-                "Confirm Z-Report",
+                "Generate Sales Report?",
+                "Confirm Sales Report",
                 JOptionPane.YES_NO_OPTION
         );
 
@@ -118,7 +144,7 @@ public class ZReportPanel extends JPanel {
             return;
         }
 
-        String fileName = "reports/Z-Report.md";
+        String fileName = "reports/Sales Report.md";
 
         File dir = new File("reports");
         if (!dir.exists()) {
@@ -127,7 +153,7 @@ public class ZReportPanel extends JPanel {
 
         // try-with-resources ensures the writer is closed automatically
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            writer.write("# Z-Report");
+            writer.write("# Sales Report");
 
             writer.newLine();
             writer.newLine();
@@ -140,7 +166,13 @@ public class ZReportPanel extends JPanel {
             writer.newLine();
             writer.write("Business Date: " + now.toLocalDate());
 
-            SalesData sales = getSalesData();
+            Date startDate = (Date) startDateSpinner.getValue();
+            Date endDate = (Date) endDateSpinner.getValue();
+
+            Timestamp startTimestamp = new Timestamp(startDate.getTime());
+            Timestamp endTimestamp = new Timestamp(endDate.getTime());
+
+            SalesData sales = getSalesData(startTimestamp, endTimestamp);
 
             writer.newLine();
             writer.write("### Receipt Range: "
@@ -201,7 +233,8 @@ public class ZReportPanel extends JPanel {
                     + String.format("%.2f", sales.totalDrinkSales)
                     + " (" + String.format("%.2f", drinkPercent) + "%)");
 
-            List<PaymentSummaryData> payments = getPaymentSummaryData();
+            List<PaymentSummaryData> payments
+                    = getPaymentSummaryData(startTimestamp, endTimestamp);
 
             writer.newLine();
             writer.newLine();
@@ -230,25 +263,19 @@ public class ZReportPanel extends JPanel {
                         p.grossSales,
                         percentOfSales
                 ));
-            }
-
-            closeReceipts();
-            conn.commit();
+            };
 
             JOptionPane.showMessageDialog(this,
-                    "Z-Report Generated Successfully!",
+                    "Sales Report Generated Successfully!",
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE);
 
         } catch (IOException e) {
-            conn.rollback();
             System.err.println("An error occurred: " + e.getMessage());
-        } finally {
-            conn.setAutoCommit(true);
         }
     }
 
-    private SalesData getSalesData() {
+    private SalesData getSalesData(Timestamp start, Timestamp end) {
 
         String query = """
 WITH receipt_totals AS (
@@ -264,7 +291,8 @@ WITH receipt_totals AS (
     LEFT JOIN food f ON ftr.food_id = f.id
     LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
     LEFT JOIN drink d ON dtr.drink_id = d.id
-    WHERE r.z_closed = FALSE
+    WHERE purchase_date >= ?
+    AND purchase_date < ?
     GROUP BY r.id, r.payment_method
 )
 
@@ -295,18 +323,23 @@ FROM receipt_totals;
 
         SalesData data = new SalesData();
 
-        try (PreparedStatement stmt = conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
 
-            if (rs.next()) {
+            stmt.setTimestamp(1, start);
+            stmt.setTimestamp(2, end);
 
-                data.totalTransactions = rs.getInt("total_transactions");
-                data.validTransactions = rs.getInt("valid_transactions");
-                data.voidTransactions = rs.getInt("void_transactions");
-                data.firstReceipt = rs.getInt("first_receipt");
-                data.lastReceipt = rs.getInt("last_receipt");
-                data.grossSales = rs.getDouble("gross_sales");
-                data.netSales = rs.getDouble("net_sales");
-                data.voidAmount = rs.getDouble("void_amount");
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+
+                    data.totalTransactions = rs.getInt("total_transactions");
+                    data.validTransactions = rs.getInt("valid_transactions");
+                    data.voidTransactions = rs.getInt("void_transactions");
+                    data.firstReceipt = rs.getInt("first_receipt");
+                    data.lastReceipt = rs.getInt("last_receipt");
+                    data.grossSales = rs.getDouble("gross_sales");
+                    data.netSales = rs.getDouble("net_sales");
+                    data.voidAmount = rs.getDouble("void_amount");
+                }
             }
 
         } catch (SQLException e) {
@@ -316,7 +349,7 @@ FROM receipt_totals;
         return data;
     }
 
-    private List<PaymentSummaryData> getPaymentSummaryData() {
+    private List<PaymentSummaryData> getPaymentSummaryData(Timestamp start, Timestamp end) {
 
         String query = """
         WITH receipt_totals AS (
@@ -332,7 +365,8 @@ FROM receipt_totals;
             LEFT JOIN food f ON ftr.food_id = f.id
             LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
             LEFT JOIN drink d ON dtr.drink_id = d.id
-            WHERE r.z_closed = FALSE
+            WHERE purchase_date >= ?
+            AND purchase_date < ?
             GROUP BY r.id, r.payment_method
         )
 
@@ -350,16 +384,21 @@ FROM receipt_totals;
 
         List<PaymentSummaryData> results = new ArrayList<>();
 
-        try (PreparedStatement stmt = conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
 
-            while (rs.next()) {
-                PaymentSummaryData data = new PaymentSummaryData();
-                data.paymentMethod = rs.getString("payment_method");
-                data.totalTransactions = rs.getInt("total_transactions");
-                data.grossSales = rs.getDouble("gross_sales");
-                data.netSales = rs.getDouble("net_sales");
+            stmt.setTimestamp(1, start);
+            stmt.setTimestamp(2, end);
 
-                results.add(data);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    PaymentSummaryData data = new PaymentSummaryData();
+                    data.paymentMethod = rs.getString("payment_method");
+                    data.totalTransactions = rs.getInt("total_transactions");
+                    data.grossSales = rs.getDouble("gross_sales");
+                    data.netSales = rs.getDouble("net_sales");
+
+                    results.add(data);
+                }
             }
 
         } catch (SQLException e) {
@@ -367,20 +406,5 @@ FROM receipt_totals;
         }
 
         return results;
-    }
-
-    private void closeReceipts() {
-
-        String update = """
-        UPDATE receipt
-        SET z_closed = TRUE
-        WHERE z_closed = FALSE;
-    """;
-
-        try (PreparedStatement stmt = conn.prepareStatement(update)) {
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage());
-        }
     }
 }

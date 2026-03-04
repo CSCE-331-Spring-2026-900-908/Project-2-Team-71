@@ -26,6 +26,7 @@ public class GUI extends JFrame {
         MenuPanel menuPanel = new MenuPanel(this);
         XReportPanel xreport = new XReportPanel(this);
         ZReportPanel zreport = new ZReportPanel(this);
+        SalesReportPanel salesreport = new SalesReportPanel(this);
 
         // Add screens to container
         container.add(mainMenuPanel, "MAIN");
@@ -37,6 +38,7 @@ public class GUI extends JFrame {
         container.add(trendsPanel, "Trends");
         container.add(xreport, "XReport");
         container.add(zreport, "ZReport");
+        container.add(salesreport, "SalesReport");
 
         add(container);
 

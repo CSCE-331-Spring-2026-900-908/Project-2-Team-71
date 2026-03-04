@@ -71,6 +71,9 @@ public class MainMenuPanel extends JPanel {
         JButton openZReport = new JButton("Open Z Report");
         openZReport.addActionListener(e -> gui.showScreen("ZReport"));
 
+        JButton openSalesReport = new JButton("Open Sales Report");
+        openSalesReport.addActionListener(e -> gui.showScreen("SalesReport"));
+
         JPanel centerPanel = new JPanel();
         centerPanel.add(openTrends);
         centerPanel.add(openPurchases);
@@ -80,6 +83,7 @@ public class MainMenuPanel extends JPanel {
         centerPanel.add(openMenu);
         centerPanel.add(openXReport);
         centerPanel.add(openZReport);
+        centerPanel.add(openSalesReport);
 
         add(title, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
