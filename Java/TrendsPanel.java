@@ -1,6 +1,5 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -426,7 +425,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetReceipts() {
+    private static ResultSet GetReceipts(String[] startDate, String[] endDate) {
         // finds total number of receipts for each month
         try {
             GetConnection();
@@ -435,15 +434,35 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT COUNT(id) AS receipts, month
-                FROM (
-                    SELECT id, DATE_PART('month', purchase_date) AS month 
-                    FROM receipt
-                )
-                GROUP BY month
-                ORDER BY month ASC;
-            """;
+            String sqlStatement = 
+                "SELECT COUNT(id) AS receipts, month, year " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "id, "
+                        + "DATE_PART('month', purchase_date) AS month, "
+                        + "DATE_PART('day', purchase_date) AS day, "
+                        + "DATE_PART('year', purchase_date) AS year "
+                    + "FROM receipt "
+                    + "WHERE ( "
+                            + "(DATE_PART('month', buy_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
+                        + "AND "
+                            + "(DATE_PART('day', buy_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
+                        + "AND "
+                            + "(DATE_PART('year', buy_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
+                    + ") "
+                + ") "
+                + "GROUP BY year, month "
+                + "ORDER BY year, month ASC";
+            
+            // """
+            //     SELECT COUNT(id) AS receipts, month
+            //     FROM (
+            //         SELECT id, DATE_PART('month', purchase_date) AS month 
+            //         FROM receipt
+            //     )
+            //     GROUP BY month
+            //     ORDER BY month ASC;
+            // """;
             
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
@@ -454,7 +473,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetTimes() {
+    private static ResultSet GetTimes(String[] startDate, String[] endDate) {
         // finds avg number of receipts for each hour
         try {
             GetConnection();
@@ -463,19 +482,41 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT AVG(orders) AS avg_receipts, hour
-                FROM (
-                    SELECT COUNT(id) AS orders, 
-                    DATE_PART('hour', purchase_date) AS hour, 
-                    DATE_PART('month', purchase_date) AS month, 
-                    DATE_PART('day', purchase_date) AS day
-                    FROM receipt
-                    GROUP BY hour, day, month
-                )
-                GROUP BY hour
-                ORDER BY hour ASC;
-            """;
+            String sqlStatement = 
+                "SELECT AVG(orders) AS avg_receipts, hour " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "COUNT(id) AS orders, "
+                        + "DATE_PART('hour', purchase_date) AS hour, "
+                        + "DATE_PART('day', purchase_date) AS day,"
+                        + "DATE_PART('month', purchase_date) AS month, "
+                        + "DATE_PART('year', purchase_date) AS year "
+                    + "FROM receipt "
+                    + "WHERE ( "
+                            + "(DATE_PART('month', buy_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
+                        + "AND "
+                            + "(DATE_PART('day', buy_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
+                        + "AND "
+                            + "(DATE_PART('year', buy_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
+                    + ") "
+                + ") "
+                + "GROUP BY hour "
+                + "ORDER BY hour ASC";
+            
+            
+            // """
+            //     SELECT AVG(orders) AS avg_receipts, hour
+            //     FROM (
+            //         SELECT COUNT(id) AS orders, 
+            //         DATE_PART('hour', purchase_date) AS hour, 
+            //         DATE_PART('month', purchase_date) AS month, 
+            //         DATE_PART('day', purchase_date) AS day
+            //         FROM receipt
+            //         GROUP BY hour, day, month
+            //     )
+            //     GROUP BY hour
+            //     ORDER BY hour ASC;
+            // """;
             
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
