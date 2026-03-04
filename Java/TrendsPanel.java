@@ -17,7 +17,6 @@ import java.util.Properties;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -59,7 +58,7 @@ public class TrendsPanel extends JPanel {
         // Create a button to display graphs for all time data
         // it will populate the date fields to include all the data
         JButton allTimeButton = new JButton("All Time");
-        allTimeButton.addActionListener(e -> LoadAllTime(graphPanel));
+        allTimeButton.addActionListener(e -> LoadAllTime(graphPanel, bottomBar));
         topBar.add(allTimeButton);
 
 
@@ -79,59 +78,8 @@ public class TrendsPanel extends JPanel {
         // add to frame!
         add(topBar, BorderLayout.NORTH);
 
-        // make year timeframe button
-        // String years[] = LoadYears();
-        // JComboBox yearSelect = new JComboBox<>(years);
-
-
-        // add four different graphs //
-        graphPanel.setLayout(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
-
-        // Pie chart for showing most popular drinks
-        ChartPanel piChart = SetUpPiChart();
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        constraints.gridheight = 100;
-        constraints.gridwidth = 200;
-        constraints.weightx = 0.5;
-        constraints.weighty = 0.5;
-        constraints.fill = GridBagConstraints.BOTH;
-        graphPanel.add(piChart, constraints);
-
-        // Bar chart for showing monthly revenue
-        ChartPanel barChart = SetUpBarChart();
-        constraints.gridx = 200;
-        constraints.gridy = 0;
-        constraints.gridheight = 100;
-        constraints.gridwidth = 200;
-        constraints.weightx = 0.5;
-        constraints.weighty = 0.5;
-        constraints.fill = GridBagConstraints.BOTH;
-        graphPanel.add(barChart, constraints);
-
-        // line chart to show monthly number of sales
-        ChartPanel lineChart = SetUpLineChart();
-        constraints.gridx = 0;
-        constraints.gridy = 100;
-        constraints.gridheight = 100;
-        constraints.gridwidth = 200;
-        constraints.weightx = 0.5;
-        constraints.weighty = 0.5;
-        constraints.fill = GridBagConstraints.BOTH;
-        graphPanel.add(lineChart, constraints);
-
-        // Show busy time trends
-        ChartPanel timeChart = SetUpTimeChart();
-        constraints.gridx = 200;
-        constraints.gridy = 100;
-        constraints.gridheight = 100;
-        constraints.gridwidth = 200;
-        constraints.weightx = 0.5;
-        constraints.weighty = 0.5;
-        constraints.fill = GridBagConstraints.BOTH;
-        graphPanel.add(timeChart, constraints);
-
+        // generate graphs to display all time data
+        LoadAllTime(graphPanel, bottomBar);
         add(graphPanel, BorderLayout.CENTER);
 
 
@@ -149,12 +97,12 @@ public class TrendsPanel extends JPanel {
 
     
 
-    private static ChartPanel SetUpPiChart() {
-        ResultSet orderCount = GetDrinksAndFoodCount();
+    private static ChartPanel SetUpPiChart(String[] startDate, String[] endDate) {
+        ResultSet orderCount = GetDrinksAndFoodCount(startDate, endDate);
         DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
 
         JFreeChart ordersPiChart = ChartFactory.createPieChart(
-            "All Time Sales Per Item", // Title
+            "Sales Per Item", // Title
             orderPieDataset, // Dataset
             true, // Legend?
             true, // Tooltip?
@@ -165,11 +113,11 @@ public class TrendsPanel extends JPanel {
         return piChart;
     }
 
-    private static ChartPanel SetUpBarChart() {
-        ResultSet incomeData = GetIncome();
+    private static ChartPanel SetUpBarChart(String[] startDate, String[] endDate) {
+        ResultSet incomeData = GetIncome(startDate, endDate);
         DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
 
-        ResultSet lossData = GetExpenses();
+        ResultSet lossData = GetExpenses(startDate, endDate);
         DefaultCategoryDataset lossDataset = LoadBarData(lossData, "Loss");
 
         // Create combination bar plot. One bar will be loss and other on top will be income.
@@ -199,9 +147,9 @@ public class TrendsPanel extends JPanel {
         return barChart;
     }
 
-    private static ChartPanel SetUpLineChart() {
+    private static ChartPanel SetUpLineChart(String[] startDate, String[] endDate) {
         // line chart will display monthly amount of customer orders by tracking receipts per month
-        ResultSet receiptData = GetReceipts();
+        ResultSet receiptData = GetReceipts(startDate, endDate);
         DefaultCategoryDataset receiptDataset = LoadReceiptData(receiptData);
 
         // Create the line chart
@@ -221,13 +169,13 @@ public class TrendsPanel extends JPanel {
         return lineChart;
     }
 
-    private static ChartPanel SetUpTimeChart() {
-        ResultSet timeData = GetTimes();
+    private static ChartPanel SetUpTimeChart(String[] startDate, String[] endDate) {
+        ResultSet timeData = GetTimes(startDate, endDate);
         DefaultCategoryDataset timeDataset = LoadTimeData(timeData);
         
 
         JFreeChart timeLineChart = ChartFactory.createLineChart(
-            "Hourly Business",
+            "Average Hourly Business",
             "Time", 
             "Receipts", 
             timeDataset, 
@@ -243,6 +191,63 @@ public class TrendsPanel extends JPanel {
     }
 
 
+    private static void redrawGraphs(JPanel graphPanel, String[] startDate, String[] endDate) {
+        // This function replaces the graphs with the data contained in the 
+        // specified time frame
+        graphPanel.removeAll();
+
+        // add four different graphs //
+        graphPanel.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+
+        // Pie chart for showing most popular drinks
+        ChartPanel piChart = SetUpPiChart(startDate, endDate);
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(piChart, constraints);
+
+        // Bar chart for showing monthly revenue
+        ChartPanel barChart = SetUpBarChart(startDate, endDate);
+        constraints.gridx = 200;
+        constraints.gridy = 0;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(barChart, constraints);
+
+        // line chart to show monthly number of sales
+        ChartPanel lineChart = SetUpLineChart(startDate, endDate);
+        constraints.gridx = 0;
+        constraints.gridy = 100;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(lineChart, constraints);
+
+        // Show busy time trends
+        ChartPanel timeChart = SetUpTimeChart(startDate, endDate);
+        constraints.gridx = 200;
+        constraints.gridy = 100;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(timeChart, constraints);
+
+        
+        graphPanel.revalidate();
+        graphPanel.repaint();
+    }
 
     private static void GetConnection() {
         Properties props = new Properties();
@@ -457,44 +462,38 @@ public class TrendsPanel extends JPanel {
     }
 
 
-    private static void LoadAllTime(JPanel graphPanel) {
+    private static void LoadAllTime(JPanel graphPanel, JPanel bottomPanel) {
         // get oldest receipt and newest receipt dates
         ResultSet allTimeSet = GetAllTime();
         boolean oldestDate = true;
-        String startMonth = "";
-        String startDay = "";
-        String startYear = "";
-        String endMonth = "";
-        String endDay = "";
-        String endYear = "";
+        String[] startDate = new String[3];
+        String[] endDate = new String[3];
         
         try {
             while (allTimeSet != null && allTimeSet.next()) {
                 if (oldestDate) {
-                    startMonth = allTimeSet.getString("month");
-                    startDay = allTimeSet.getString("day");
-                    startYear = allTimeSet.getString("year");
+                    startDate[0] = allTimeSet.getString("month");
+                    startDate[1] = allTimeSet.getString("day");
+                    startDate[2] = allTimeSet.getString("year");
                     oldestDate = false;
                 }
                 else {
-                    endMonth = allTimeSet.getString("month");
-                    endDay = allTimeSet.getString("day");
-                    endYear = allTimeSet.getString("year");
+                    endDate[0] = allTimeSet.getString("month");
+                    endDate[1] = allTimeSet.getString("day");
+                    endDate[2] = allTimeSet.getString("year");
                 }
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
 
-        redrawGraphs(
-            graphPanel, 
-            startMonth, 
-            startDay, 
-            startYear, 
-            endMonth, 
-            endDay, 
-            endYear
-        );
+        redrawGraphs(graphPanel, startDate, endDate);
+
+        JTextField timeFrameField = (JTextField) bottomPanel.getComponent(0);
+        timeFrameField.setText("All Time Data");
+
+        bottomPanel.revalidate();
+        bottomPanel.repaint();
     }
 
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
@@ -565,11 +564,4 @@ public class TrendsPanel extends JPanel {
         // return!
         return timeDataset;
     }
-
-    // private static String[] LoadYears(ResultSet years) {
-    //     // get string array of years from database
-        
-
-
-    // }
 }
