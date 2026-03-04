@@ -58,10 +58,9 @@ public class MainMenuPanel extends JPanel {
 
         addHierarchyListener(e -> {
             if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
-                SwingUtilities.invokeLater(() -> {
-                    loginInProgress = false;   // allow popup again
-                    forceLoginPopup();
-                });
+                if (!loginInProgress) {
+                    SwingUtilities.invokeLater(this::forceLoginPopup);
+                }
             }
         });
     }
@@ -75,7 +74,6 @@ public class MainMenuPanel extends JPanel {
             SwingUtilities.invokeLater(() -> {
                 // allow popup to run again
                 loginInProgress = false;
-                forceLoginPopup();
             });
         }
     }
