@@ -1,12 +1,30 @@
-import java.awt.*;
-import java.sql.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.event.HierarchyEvent;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
-import java.awt.event.HierarchyEvent;
 
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
+
+/* 
+* This is the class that creates the main menu that
+* allows the user to navigate through the different panels.
+* @author Ethan Nguyen
+*/ 
 public class MainMenuPanel extends JPanel {
 
     private final GUI gui;
@@ -14,6 +32,11 @@ public class MainMenuPanel extends JPanel {
     private static final String MANAGER_PIN = "manager"; // or "mm", still undecided
     private boolean loginInProgress = false;
 
+    /*
+    * This is the constructor to create the main menu panel
+    * to navigate through the different panels.
+    * @param gui This is the gui object where the interface panels are attached
+    */
     public MainMenuPanel(GUI gui) {
 
         this.gui = gui;
@@ -65,6 +88,12 @@ public class MainMenuPanel extends JPanel {
         });
     }
 
+    /*
+    * This function prompts the user to identify themselves in order to access the different panels.
+    * @param aFlag Reset to true each time the main menu panel is opened. 
+    * This allows the login prompt to be displayed each time main menu is accessed.
+    * @return void There is nothing that is returned
+    */
     @Override
     public void setVisible(boolean aFlag) {
         super.setVisible(aFlag);
@@ -78,6 +107,12 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /*
+    * This function takes in the user's identification. 
+    * Depending on their authority level, the access given to them is updated. 
+    * Cashiers can only access the POS Panel while managers can access all panels.
+    * @return void There is nothing that is returned
+    */
     private void forceLoginPopup() {
         if (loginInProgress) return;
         loginInProgress = true;
@@ -134,6 +169,11 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /*
+    * This function makes a connection with the database in order to make queries to 
+    * gather information by running commands in the .env file.
+    * @return void There is nothing that is returned
+    */
     private void getConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
@@ -156,6 +196,11 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /*
+    * This function gets a connection with the database if there is not one already created. 
+    * Access to the database allows information to be gathered and stored.
+    * @return void There is nothing that is returned
+    */
     private void ensureConnection() {
         try {
             if (conn == null || conn.isClosed()) {
@@ -166,6 +211,11 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /*
+    * This function determines if the casherId number inputted is a valid cashier Id number.
+    * @param cashierId Id number entered by the user for cashier validation.
+    * @return Whether the user is a cashier or not. If casher, function will return true. If not, function will return false.
+    */
     private boolean cashierExists(int cashierId) {
         ensureConnection();
         if (conn == null) return false;
