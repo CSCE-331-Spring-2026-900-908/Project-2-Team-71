@@ -80,14 +80,6 @@ public class TrendsPanel extends JPanel {
         // generate graphs to display all time data
         LoadAllTime(graphPanel, bottomBar);
         add(graphPanel, BorderLayout.CENTER);
-
-
-        // create bottom bar to display current graph time frame
-        String timeString = "January 21, 2025 - March 21, 2025";
-        JLabel timeFrame = new JLabel(timeString);
-        timeFrame.setBorder(BorderFactory.createLineBorder(Color.blue, 2));
-        timeFrame.setFont(new Font(timeFrame.getName(), Font.BOLD, 16));
-        bottomBar.add(timeFrame);
         add(bottomBar, BorderLayout.SOUTH);
     }
 
@@ -190,7 +182,7 @@ public class TrendsPanel extends JPanel {
     }
 
 
-    private static void redrawGraphs(JPanel graphPanel, String[] startDate, String[] endDate) {
+    private static void RedrawGraphs(JPanel graphPanel, String[] startDate, String[] endDate) {
         // This function replaces the graphs with the data contained in the 
         // specified time frame
         graphPanel.removeAll();
@@ -246,6 +238,22 @@ public class TrendsPanel extends JPanel {
         
         graphPanel.revalidate();
         graphPanel.repaint();
+    }
+
+    private static void RedrawTimeFrame(JPanel bottomBar, String[] startDate, String[] endDate, Boolean allTime) {
+        bottomBar.removeAll();
+
+        // create bottom bar to display current graph time frame
+        String timeString = startDate[0] + "/" + startDate[1] + "/" + startDate[2] + " - " + endDate[0] + "/" + endDate[1] + "/" + endDate[2];
+        
+        if (allTime) {
+            timeString += " (All Time Data)";
+        }
+
+        JLabel timeFrame = new JLabel(timeString);
+        timeFrame.setBorder(BorderFactory.createLineBorder(Color.blue, 2));
+        timeFrame.setFont(new Font(timeFrame.getName(), Font.BOLD, 16));
+        bottomBar.add(timeFrame);
     }
 
     private static void GetConnection() {
@@ -444,11 +452,11 @@ public class TrendsPanel extends JPanel {
                         + "DATE_PART('year', purchase_date) AS year "
                     + "FROM receipt "
                     + "WHERE ( "
-                            + "(DATE_PART('month', buy_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
+                            + "(DATE_PART('month', purchase_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
                         + "AND "
-                            + "(DATE_PART('day', buy_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
+                            + "(DATE_PART('day', purchase_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
                         + "AND "
-                            + "(DATE_PART('year', buy_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
+                            + "(DATE_PART('year', purchase_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
                     + ") "
                 + ") "
                 + "GROUP BY year, month "
@@ -493,11 +501,11 @@ public class TrendsPanel extends JPanel {
                         + "DATE_PART('year', purchase_date) AS year "
                     + "FROM receipt "
                     + "WHERE ( "
-                            + "(DATE_PART('month', buy_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
+                            + "(DATE_PART('month', purchase_date) BETWEEN " + startDate[0] + " AND " + endDate[0] + ") "
                         + "AND "
-                            + "(DATE_PART('day', buy_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
+                            + "(DATE_PART('day', purchase_date) BETWEEN " + startDate[1] + " AND " + endDate[1] + ") "
                         + "AND "
-                            + "(DATE_PART('year', buy_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
+                            + "(DATE_PART('year', purchase_date) BETWEEN " + startDate[2] + " AND " + endDate[2] + ") "
                     + ") "
                 + ") "
                 + "GROUP BY hour "
@@ -585,10 +593,8 @@ public class TrendsPanel extends JPanel {
             JOptionPane.showMessageDialog(null, e.getMessage());
         }
 
-        redrawGraphs(graphPanel, startDate, endDate);
-
-        JTextField timeFrameField = (JTextField) bottomPanel.getComponent(0);
-        timeFrameField.setText("All Time Data");
+        RedrawGraphs(graphPanel, startDate, endDate);
+        RedrawTimeFrame(bottomPanel, startDate, endDate, true);
 
         bottomPanel.revalidate();
         bottomPanel.repaint();
