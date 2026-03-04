@@ -1,4 +1,9 @@
-import java.awt.GridLayout;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -9,9 +14,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -34,62 +42,59 @@ public class TrendsPanel extends JPanel {
 
     public TrendsPanel(GUI gui) {
         //this.gui = gui;
+        setLayout(new BorderLayout());
 
-        //add scroll panel
-        
-        
-        
-        //GridBagConstraints constraints = new GridBagConstraints();
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel graphPanel = new JPanel();
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
         // Create button to navigate back to main menu
-        JButton openMain = new JButton("Main Menu");
-        openMain.addActionListener(e -> gui.showScreen("MAIN"));
-        
-        //constraints.anchor = GridBagConstraints.FIRST_LINE_START;
-        //constraints.weightx = 0.5;
-        //constraints.fill = GridBagConstraints.HORIZONTAL;
-        //constraints.gridx = 0;
-        //constraints.gridy = 0;
+        // make menu button like the rest of the pages
+        JButton backButton = new JButton("Menu");
+        backButton.addActionListener(e -> gui.showScreen("MAIN"));
+        topBar.add(backButton);
+
+        // Create a button to display graphs for all time data
+        // it will populate the date fields to include all the data
+        JButton allTimeButton = new JButton("All Time");
+        allTimeButton.addActionListener(e -> TrendsPanel.LoadAllTime(graphPanel, bottomBar));
+        topBar.add(allTimeButton);
 
 
-        add(openMain);
+        // Create field to enter time frame of interest
+        // This information will be fed into the graphs
+        JTextField fromDateField = new JTextField(8);
+        JTextField toDateField = new JTextField(8);
+        topBar.add(new JLabel("From (YYYY-MM-DD):"));
+        topBar.add(fromDateField);
+        topBar.add(new JLabel("To:"));
+        topBar.add(toDateField);
 
+        // add refresh button to refresh graphs to corresponding time frame
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(e -> TrendsPanel.RefreshGraphs(topBar, graphPanel, bottomBar));
+        topBar.add(refreshButton);
 
-        // add four different graphs //
-        JPanel graphPanel = new JPanel();
-        //JScrollBar scrollPane = new JScrollBar();
-        //graphPanel.add(scrollPane);
+        // add to frame!
+        add(topBar, BorderLayout.NORTH);
 
-        //graphPanel.add(scrollPane);
-        graphPanel.setLayout(new GridLayout(2,2, 2,2));
-
-        // Pie chart for showing most popular drinks
-        ChartPanel piChart = SetUpPiChart();
-        graphPanel.add(piChart);
-
-        // Bar chart for showing monthly revenue
-        ChartPanel barChart = SetUpBarChart();
-        graphPanel.add(barChart);
-
-        // line chart to show monthly number of sales
-        ChartPanel lineChart = SetUpLineChart();
-        graphPanel.add(lineChart);
-
-        // Show busy time trends
-        ChartPanel timeChart = SetUpTimeChart();
-        graphPanel.add(timeChart);
-
-        add(graphPanel);
+        // generate graphs to display all time data
+        LoadAllTime(graphPanel, bottomBar);
+        add(graphPanel, BorderLayout.CENTER);
+        add(bottomBar, BorderLayout.SOUTH);
     }
 
 
 
-    private static ChartPanel SetUpPiChart() {
-        ResultSet orderCount = GetDrinksAndFoodCount();
+
+    
+
+    private static ChartPanel SetUpPiChart(String startDateString, String endDateString) {
+        ResultSet orderCount = GetDrinksAndFoodCount(startDateString, endDateString);
         DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
 
         JFreeChart ordersPiChart = ChartFactory.createPieChart(
-            "All Time Sales Per Item", // Title
+            "Sales Per Item", // Title
             orderPieDataset, // Dataset
             true, // Legend?
             true, // Tooltip?
@@ -100,11 +105,11 @@ public class TrendsPanel extends JPanel {
         return piChart;
     }
 
-    private static ChartPanel SetUpBarChart() {
-        ResultSet incomeData = GetIncome();
+    private static ChartPanel SetUpBarChart(String startDateString, String endDateString) {
+        ResultSet incomeData = GetIncome(startDateString, endDateString);
         DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
 
-        ResultSet lossData = GetExpenses();
+        ResultSet lossData = GetExpenses(startDateString, endDateString);
         DefaultCategoryDataset lossDataset = LoadBarData(lossData, "Loss");
 
         // Create combination bar plot. One bar will be loss and other on top will be income.
@@ -134,9 +139,9 @@ public class TrendsPanel extends JPanel {
         return barChart;
     }
 
-    private static ChartPanel SetUpLineChart() {
+    private static ChartPanel SetUpLineChart(String startDateString, String endDateString) {
         // line chart will display monthly amount of customer orders by tracking receipts per month
-        ResultSet receiptData = GetReceipts();
+        ResultSet receiptData = GetReceipts(startDateString, endDateString);
         DefaultCategoryDataset receiptDataset = LoadReceiptData(receiptData);
 
         // Create the line chart
@@ -156,13 +161,13 @@ public class TrendsPanel extends JPanel {
         return lineChart;
     }
 
-    private static ChartPanel SetUpTimeChart() {
-        ResultSet timeData = GetTimes();
+    private static ChartPanel SetUpTimeChart(String startDateString, String endDateString) {
+        ResultSet timeData = GetTimes(startDateString, endDateString);
         DefaultCategoryDataset timeDataset = LoadTimeData(timeData);
         
 
         JFreeChart timeLineChart = ChartFactory.createLineChart(
-            "Hourly Business",
+            "Average Hourly Business",
             "Time", 
             "Receipts", 
             timeDataset, 
@@ -178,6 +183,92 @@ public class TrendsPanel extends JPanel {
     }
 
 
+    private static void RedrawGraphs(JPanel graphPanel, String startDateString, String endDateString) {
+        // This function replaces the graphs with the data contained in the 
+        // specified time frame
+        graphPanel.removeAll();
+        graphPanel.revalidate();
+
+        // add four different graphs //
+        graphPanel.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+
+        // Pie chart for showing most popular drinks
+        ChartPanel piChart = SetUpPiChart(startDateString, endDateString);
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(piChart, constraints);
+
+        // Bar chart for showing monthly revenue
+        ChartPanel barChart = SetUpBarChart(startDateString, endDateString);
+        constraints.gridx = 200;
+        constraints.gridy = 0;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(barChart, constraints);
+
+        // line chart to show monthly number of sales
+        ChartPanel lineChart = SetUpLineChart(startDateString, endDateString);
+        constraints.gridx = 0;
+        constraints.gridy = 100;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(lineChart, constraints);
+
+        // Show busy time trends
+        ChartPanel timeChart = SetUpTimeChart(startDateString, endDateString);
+        constraints.gridx = 200;
+        constraints.gridy = 100;
+        constraints.gridheight = 100;
+        constraints.gridwidth = 200;
+        constraints.weightx = 0.5;
+        constraints.weighty = 0.5;
+        constraints.fill = GridBagConstraints.BOTH;
+        graphPanel.add(timeChart, constraints);
+
+        graphPanel.repaint();
+    }
+
+    private static void RedrawTimeFrame(JPanel bottomBar, String startDateString, String endDateString, Boolean allTime) {
+        bottomBar.removeAll();
+        bottomBar.revalidate();
+
+        // create bottom bar to display current graph time frame
+        String timeString = startDateString + " To " + endDateString;
+        
+        if (allTime) {
+            timeString += " (All Time Data)";
+        }
+
+        JLabel timeFrame = new JLabel(timeString);
+        timeFrame.setBorder(BorderFactory.createLineBorder(Color.blue, 2));
+        timeFrame.setFont(new Font(timeFrame.getName(), Font.BOLD, 16));
+        bottomBar.add(timeFrame);
+
+        bottomBar.repaint();
+    }
+
+    private static void RefreshGraphs(JPanel topBar, JPanel graphPanel, JPanel bottomBar) {
+        JTextField startField = (JTextField) topBar.getComponent(3);
+        JTextField endField = (JTextField) topBar.getComponent(5);
+
+        String startDateString = startField.getText();
+        String endDateString = endField.getText();
+
+        RedrawGraphs(graphPanel, startDateString, endDateString);
+        RedrawTimeFrame(bottomBar, startDateString, endDateString, false);
+    }
 
     private static void GetConnection() {
         Properties props = new Properties();
@@ -202,7 +293,7 @@ public class TrendsPanel extends JPanel {
     }
 
 
-    private static ResultSet GetDrinksAndFoodCount() {
+    private static ResultSet GetDrinksAndFoodCount(String startDateString, String endDateString) {
         try {
             GetConnection();
 
@@ -210,23 +301,37 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT COUNT(drink_id) AS number_of_orders, name
-                FROM (
-                    SELECT drink_to_receipt.drink_id, drink.name
-                    FROM drink
-                    INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id
-                )
-                GROUP BY name
-                UNION
-                SELECT COUNT(food_id) AS number_of_orders, name
-                FROM (
-                    SELECT food_to_receipt.food_id, food.name
-                    FROM food
-                    INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id
-                )
-                GROUP BY name;
-            """;
+            String sqlStatement = 
+                " SELECT COUNT(drink_id) AS number_of_orders, name " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "drink_to_receipt.drink_id, "
+                        + "drink.name, " 
+                        + "DATE_PART('month', receipt.purchase_date) AS month, "
+                        + "DATE_PART('day', receipt.purchase_date) AS day, "
+                        + "DATE_PART('year', receipt.purchase_date) AS year "
+                    + "FROM drink "
+                    + "INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id "
+                    + "INNER JOIN receipt ON receipt.id = drink_to_receipt.receipt_id "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                + ") "
+                + "GROUP BY name "
+                + "UNION "
+                + "SELECT COUNT(food_id) AS number_of_orders, name "
+                + "FROM ( "
+                    + "SELECT "
+                        + "food_to_receipt.food_id, "
+                        + "food.name, " 
+                        + "DATE_PART('month', receipt.purchase_date) AS month, "
+                        + "DATE_PART('day', receipt.purchase_date) AS day, "
+                        + "DATE_PART('year', receipt.purchase_date) AS year "
+                    + "FROM food "
+                    + "INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id "
+                    + "INNER JOIN receipt ON receipt.id = food_to_receipt.receipt_id "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                + ") "
+                + "GROUP BY name";
+                
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
 
@@ -236,7 +341,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetIncome() {
+    private static ResultSet GetIncome(String startDateString, String endDateString) {
         // finds total income from sales for each month
         try {
             GetConnection();
@@ -245,22 +350,31 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT SUM(sale) AS income, month
-                FROM (
-                    SELECT drink.price AS sale, DATE_PART('month', receipt.purchase_date) AS month 
-                    FROM ((drink
-                    INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id)
-                    INNER JOIN receipt ON receipt.id = drink_to_receipt.receipt_id)
-                    UNION ALL
-                    SELECT food.price AS sale, DATE_PART('month',receipt.purchase_date) AS month 
-                    FROM ((food
-                    INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id)
-                    INNER JOIN receipt ON receipt.id = food_to_receipt.receipt_id)
-                )
-                GROUP BY month
-                ORDER BY month ASC;
-            """;
+            String sqlStatement = 
+                "SELECT SUM(sale) AS income, month, year " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "drink.price AS sale, "
+                        + "DATE_PART('month', receipt.purchase_date) AS month, "
+                        + "DATE_PART('day', receipt.purchase_date) AS day, "
+                        + "DATE_PART('year', receipt.purchase_date) AS year "
+                    + "FROM ((drink "
+                        + "INNER JOIN drink_to_receipt ON drink.id = drink_to_receipt.drink_id) "
+                        + "INNER JOIN receipt ON receipt.id = drink_to_receipt.receipt_id) "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                    + "UNION ALL "
+                    + "SELECT "
+                        + "food.price AS sale, "
+                        + "DATE_PART('month', receipt.purchase_date) AS month, "
+                        + "DATE_PART('day', receipt.purchase_date) AS day, "
+                        + "DATE_PART('year', receipt.purchase_date) AS year "
+                    + "FROM ((food "
+                        + "INNER JOIN food_to_receipt ON food.id = food_to_receipt.food_id) "
+                        + "INNER JOIN receipt ON receipt.id = food_to_receipt.receipt_id) "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                + ") "
+                + "GROUP BY year, month "
+                + "ORDER BY year, month ASC";
             
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
@@ -271,7 +385,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetExpenses() {
+    private static ResultSet GetExpenses(String startDateString, String endDateString) {
         // finds total expenses for each month
         try {
             GetConnection();
@@ -280,15 +394,19 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT SUM(expense) AS loss, month
-                FROM (
-                    SELECT supplier_price AS expense, DATE_PART('month', buy_date) AS month 
-                    FROM purchase
-                )
-                GROUP BY month
-                ORDER BY month ASC;
-            """;
+            String sqlStatement = 
+                "SELECT SUM(expense) AS loss, month, year " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "supplier_price AS expense, "
+                        + "DATE_PART('month', buy_date) AS month, "
+                        + "DATE_PART('day', buy_date) AS day, "
+                        + "DATE_PART('year', buy_date) AS year "
+                    + "FROM purchase "
+                    + "WHERE purchase.buy_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                + ") "
+                + "GROUP BY year, month "
+                + "ORDER BY year, month ASC";
             
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
@@ -299,7 +417,7 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetReceipts() {
+    private static ResultSet GetReceipts(String startDateString, String endDateString) {
         // finds total number of receipts for each month
         try {
             GetConnection();
@@ -308,15 +426,29 @@ public class TrendsPanel extends JPanel {
             Statement stmt = conn.createStatement();
 
             //create a SQL statement
-            String sqlStatement = """
-                SELECT COUNT(id) AS receipts, month
-                FROM (
-                    SELECT id, DATE_PART('month', purchase_date) AS month 
-                    FROM receipt
-                )
-                GROUP BY month
-                ORDER BY month ASC;
-            """;
+            String sqlStatement = 
+                "SELECT COUNT(id) AS receipts, month, year " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "id, "
+                        + "DATE_PART('month', purchase_date) AS month, "
+                        + "DATE_PART('day', purchase_date) AS day, "
+                        + "DATE_PART('year', purchase_date) AS year "
+                    + "FROM receipt "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                + ") "
+                + "GROUP BY year, month "
+                + "ORDER BY year, month ASC";
+            
+            // """
+            //     SELECT COUNT(id) AS receipts, month
+            //     FROM (
+            //         SELECT id, DATE_PART('month', purchase_date) AS month 
+            //         FROM receipt
+            //     )
+            //     GROUP BY month
+            //     ORDER BY month ASC;
+            // """;
             
             //send statement to DBMS
             return stmt.executeQuery(sqlStatement);
@@ -327,7 +459,56 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-    private static ResultSet GetTimes() {
+    private static ResultSet GetTimes(String startDateString, String endDateString) {
+        // finds avg number of receipts for each hour
+        try {
+            GetConnection();
+
+            //create a statement object
+            Statement stmt = conn.createStatement();
+
+            //create a SQL statement
+            String sqlStatement = 
+                "SELECT AVG(orders) AS avg_receipts, hour " 
+                + "FROM ( "
+                    + "SELECT "
+                        + "COUNT(id) AS orders, "
+                        + "DATE_PART('hour', purchase_date) AS hour, "
+                        + "DATE_PART('day', purchase_date) AS day, "
+                        + "DATE_PART('month', purchase_date) AS month, "
+                        + "DATE_PART('year', purchase_date) AS year "
+                    + "FROM receipt "
+                    + "WHERE receipt.purchase_date BETWEEN '" + startDateString + "' AND '" + endDateString + "' "
+                    + "GROUP BY hour, day, month, year "
+                + ") "
+                + "GROUP BY hour "
+                + "ORDER BY hour ASC";
+            
+            
+            // """
+            //     SELECT AVG(orders) AS avg_receipts, hour
+            //     FROM (
+            //         SELECT COUNT(id) AS orders, 
+            //         DATE_PART('hour', purchase_date) AS hour, 
+            //         DATE_PART('month', purchase_date) AS month, 
+            //         DATE_PART('day', purchase_date) AS day
+            //         FROM receipt
+            //         GROUP BY hour, day, month
+            //     )
+            //     GROUP BY hour
+            //     ORDER BY hour ASC;
+            // """;
+            
+            //send statement to DBMS
+            return stmt.executeQuery(sqlStatement);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+        return null;
+    }
+
+    private static ResultSet GetAllTime() {
         // finds avg number of receipts for each hour
         try {
             GetConnection();
@@ -337,17 +518,17 @@ public class TrendsPanel extends JPanel {
 
             //create a SQL statement
             String sqlStatement = """
-                SELECT AVG(orders) AS avg_receipts, hour
-                FROM (
-                    SELECT COUNT(id) AS orders, 
-                    DATE_PART('hour', purchase_date) AS hour, 
-                    DATE_PART('month', purchase_date) AS month, 
-                    DATE_PART('day', purchase_date) AS day
-                    FROM receipt
-                    GROUP BY hour, day, month
-                )
-                GROUP BY hour
-                ORDER BY hour ASC;
+                SELECT 
+                    DATE_PART('month', MIN(purchase_date)) AS month,
+                    DATE_PART('day', MIN(purchase_date)) AS day, 
+                    DATE_PART('year', MIN(purchase_date)) AS year
+                FROM receipt
+                UNION ALL
+                SELECT 
+                    DATE_PART('month', MAX(purchase_date)) AS month, 
+                    DATE_PART('day', MAX(purchase_date)) AS day, 
+                    DATE_PART('year', MAX(purchase_date)) AS year
+                FROM receipt;
             """;
             
             //send statement to DBMS
@@ -360,6 +541,30 @@ public class TrendsPanel extends JPanel {
     }
 
 
+    private static void LoadAllTime(JPanel graphPanel, JPanel bottomPanel) {
+        // get oldest receipt and newest receipt dates
+        ResultSet allTimeSet = GetAllTime();
+        boolean oldestDate = true;
+        String startDateString = "";
+        String endDateString = "";
+        
+        try {
+            while (allTimeSet != null && allTimeSet.next()) {
+                if (oldestDate) {
+                    startDateString = allTimeSet.getString("year") + "-" + allTimeSet.getString("month") + "-" + allTimeSet.getString("day");
+                    oldestDate = false;
+                }
+                else {
+                    endDateString = allTimeSet.getString("year") + "-" + allTimeSet.getString("month") + "-" + allTimeSet.getString("day");
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
+
+        RedrawGraphs(graphPanel, startDateString, endDateString);
+        RedrawTimeFrame(bottomPanel, startDateString, endDateString, true);
+    }
 
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
@@ -382,11 +587,13 @@ public class TrendsPanel extends JPanel {
     private static DefaultCategoryDataset LoadBarData(ResultSet barData, String saleType) {
         // create dataset for bar graph
         DefaultCategoryDataset barDataset = new DefaultCategoryDataset();
+        String dateEntry;
 
         // while loop through result set and input values into dataset
         try {
             while (barData != null && barData.next()) {
-                barDataset.addValue(barData.getInt(1), saleType, barData.getString(2));
+                dateEntry = barData.getString(2) + "/" + barData.getString(3);
+                barDataset.addValue(barData.getInt(1), saleType, dateEntry);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
@@ -399,11 +606,13 @@ public class TrendsPanel extends JPanel {
     private static DefaultCategoryDataset LoadReceiptData(ResultSet receiptData) {
         // create dataset for line graph
         DefaultCategoryDataset lineDataset = new DefaultCategoryDataset();
+        String dateEntry;
 
         // while loop through result set and input values into dataset
         try {
             while (receiptData != null && receiptData.next()) {
-                lineDataset.addValue(receiptData.getInt("receipts"), "Receipts", receiptData.getString("month"));
+                dateEntry = receiptData.getString("month") + "/" + receiptData.getString("year");
+                lineDataset.addValue(receiptData.getInt("receipts"), "Receipts", dateEntry);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
