@@ -1,3 +1,4 @@
+
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.event.HierarchyEvent;
@@ -67,6 +68,9 @@ public class MainMenuPanel extends JPanel {
         JButton openXReport = new JButton("Open X Report");
         openXReport.addActionListener(e -> gui.showScreen("XReport"));
 
+        JButton openZReport = new JButton("Open Z Report");
+        openZReport.addActionListener(e -> gui.showScreen("ZReport"));
+
         JPanel centerPanel = new JPanel();
         centerPanel.add(openTrends);
         centerPanel.add(openPurchases);
@@ -75,6 +79,7 @@ public class MainMenuPanel extends JPanel {
         centerPanel.add(openPOS);
         centerPanel.add(openMenu);
         centerPanel.add(openXReport);
+        centerPanel.add(openZReport);
 
         add(title, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
@@ -114,7 +119,9 @@ public class MainMenuPanel extends JPanel {
     * @return void There is nothing that is returned
     */
     private void forceLoginPopup() {
-        if (loginInProgress) return;
+        if (loginInProgress) {
+            return;
+        }
         loginInProgress = true;
 
         JTextField input = new JTextField(15);
@@ -218,7 +225,9 @@ public class MainMenuPanel extends JPanel {
     */
     private boolean cashierExists(int cashierId) {
         ensureConnection();
-        if (conn == null) return false;
+        if (conn == null) {
+            return false;
+        }
 
         String sql = "SELECT 1 FROM cashier WHERE id = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
