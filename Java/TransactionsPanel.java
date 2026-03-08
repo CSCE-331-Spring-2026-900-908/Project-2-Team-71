@@ -177,9 +177,9 @@ public class TransactionsPanel extends JPanel {
                 String details = rs.getString("details");
                 String [] detailLines = details != null ? details.split(", ") : new String[0];
                 for (int i = 0; i < detailLines.length; i++) {
-                    if(detailLines[i].startsWith("Boba: true")) {
+                    if(detailLines[i].startsWith("Boba: t")) {
                         price += 0.50; // Add boba cost
-                    } else if (detailLines[i].startsWith("Popping: true")) {
+                    } else if (detailLines[i].startsWith("Popping: t")) {
                         price += 0.75; // Add popping boba cost
                     }
                 }
