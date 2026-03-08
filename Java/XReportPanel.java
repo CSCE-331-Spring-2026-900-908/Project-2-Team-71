@@ -189,6 +189,28 @@ public class XReportPanel extends JPanel {
                 ));
             }
 
+            writer.newLine();
+            writer.write("# Hourly Sales Breakdown");
+            writer.newLine();
+            writer.write("| Hour | Total Tx | Valid Tx | Void Tx | Gross Sales | Net Sales |");
+            writer.newLine();
+            writer.write("|---|---|---|---|---|---|");
+
+            List<double[]> hourlySales = getHourlySales();
+
+            for (double[] hourData : hourlySales) {
+                writer.newLine();
+                writer.write(String.format(
+                        "| %02d:00 | %d | %d | %d | %.2f | %.2f |",
+                        (int) hourData[0],
+                        (int) hourData[1],
+                        (int) hourData[2],
+                        (int) hourData[3],
+                        hourData[4],
+                        hourData[5]
+                ));
+            }
+
             JOptionPane.showMessageDialog(this,
                     "X-Report Generated Successfully!",
                     "Success",
@@ -218,6 +240,7 @@ public class XReportPanel extends JPanel {
             LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
             LEFT JOIN drink d ON dtr.drink_id = d.id
             WHERE r.purchase_date::date = CURRENT_DATE
+            AND r.z_closed = FALSE
             GROUP BY r.id, r.payment_method
         )
 
@@ -255,6 +278,56 @@ public class XReportPanel extends JPanel {
         return data;
     }
 
+    private List<double[]> getHourlySales() {
+        List<double[]> hourlySales = new ArrayList<>();
+
+        String query = """
+        WITH receipt_totals AS (
+            SELECT
+                EXTRACT(HOUR FROM r.purchase_date) AS hour,
+                r.payment_method,
+                COALESCE(SUM(f.price),0) AS food_total,
+                COALESCE(SUM(d.price),0) AS drink_total
+            FROM receipt r
+            LEFT JOIN food_to_receipt ftr ON r.id = ftr.receipt_id
+            LEFT JOIN food f ON ftr.food_id = f.id
+            LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
+            LEFT JOIN drink d ON dtr.drink_id = d.id
+            WHERE r.z_closed = FALSE
+            GROUP BY r.id, r.payment_method
+        )
+        SELECT 
+            hour,
+            COUNT(*) AS total_transactions,
+            COUNT(CASE WHEN payment_method != 'Void' THEN 1 END) AS valid_transactions,
+            COUNT(CASE WHEN payment_method = 'Void' THEN 1 END) AS void_transactions,
+            SUM(food_total + drink_total) AS gross_sales,
+            SUM(CASE WHEN payment_method != 'Void' THEN food_total + drink_total ELSE 0 END) AS net_sales
+        FROM receipt_totals
+        GROUP BY hour
+        ORDER BY hour;
+    """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                double hour = rs.getDouble("hour");
+                double totalTx = rs.getDouble("total_transactions");
+                double validTx = rs.getDouble("valid_transactions");
+                double voidTx = rs.getDouble("void_transactions");
+                double gross = rs.getDouble("gross_sales");
+                double net = rs.getDouble("net_sales");
+
+                hourlySales.add(new double[]{hour, totalTx, validTx, voidTx, gross, net});
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error retrieving hourly sales: " + e.getMessage());
+        }
+
+        return hourlySales;
+    }
+
     private List<PaymentSummaryData> getPaymentSummaryData() {
 
         String query = """
@@ -272,6 +345,7 @@ public class XReportPanel extends JPanel {
             LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
             LEFT JOIN drink d ON dtr.drink_id = d.id
             WHERE r.purchase_date::date = CURRENT_DATE
+            AND r.z_closed = FALSE
             GROUP BY r.id, r.payment_method
         )
 

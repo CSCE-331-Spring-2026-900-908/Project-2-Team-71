@@ -90,6 +90,51 @@ public class SalesReportPanel extends JPanel {
         add(centerPanel, BorderLayout.CENTER);
     }
 
+    private Map<String, double[]> getFoodAndDrinkSales(Timestamp start, Timestamp end) {
+        // Map<itemName, [quantitySold, totalSales]>
+        Map<String, double[]> counts = new LinkedHashMap<>();
+
+        String query
+                = "SELECT name, SUM(qty) AS quantity, SUM(total_price) AS total_sales FROM ("
+                + "   SELECT d.name, COUNT(dtr.drink_id) AS qty, SUM(d.price) AS total_price "
+                + "   FROM drink d "
+                + "   INNER JOIN drink_to_receipt dtr ON d.id = dtr.drink_id "
+                + "   INNER JOIN receipt r ON r.id = dtr.receipt_id "
+                + "   WHERE r.purchase_date BETWEEN ? AND ? "
+                + "   GROUP BY d.name, d.price "
+                + "   UNION ALL "
+                + "   SELECT f.name, COUNT(ftr.food_id) AS qty, SUM(f.price) AS total_price "
+                + "   FROM food f "
+                + "   INNER JOIN food_to_receipt ftr ON f.id = ftr.food_id "
+                + "   INNER JOIN receipt r ON r.id = ftr.receipt_id "
+                + "   WHERE r.purchase_date BETWEEN ? AND ? "
+                + "   GROUP BY f.name, f.price "
+                + ") AS combined "
+                + "GROUP BY name "
+                + "ORDER BY name;";
+
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setTimestamp(1, start);
+            stmt.setTimestamp(2, end);
+            stmt.setTimestamp(3, start);
+            stmt.setTimestamp(4, end);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    int quantity = rs.getInt("quantity");
+                    double total = rs.getDouble("total_sales");
+                    counts.put(name, new double[]{quantity, total});
+                }
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error retrieving food/drink sales: " + e.getMessage());
+        }
+
+        return counts;
+    }
+
     // ===================== TOP BAR =====================
     private void createTopBar() {
 
@@ -263,7 +308,24 @@ public class SalesReportPanel extends JPanel {
                         p.grossSales,
                         percentOfSales
                 ));
-            };
+            }
+
+            writer.newLine();
+            writer.write("# Item Sales Count");
+            writer.newLine();
+            writer.write("| Item Name | Quantity Sold | Total Sales |");
+            writer.newLine();
+            writer.write("|---|---|---|");
+
+            Map<String, double[]> itemSales = getFoodAndDrinkSales(startTimestamp, endTimestamp);
+
+            for (Map.Entry<String, double[]> entry : itemSales.entrySet()) {
+                String itemName = entry.getKey();
+                int qty = (int) entry.getValue()[0];
+                double total = entry.getValue()[1];
+                writer.newLine();
+                writer.write(String.format("| %s | %d | %.2f |", itemName, qty, total));
+            }
 
             JOptionPane.showMessageDialog(this,
                     "Sales Report Generated Successfully!",

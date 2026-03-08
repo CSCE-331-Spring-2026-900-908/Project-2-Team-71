@@ -1,23 +1,23 @@
 # X-Report
 
-Generated: 2026-03-04 02:27:03
+Generated: 2026-03-04 14:55:19
 
 Business Date: 2026-03-04
 
 
-### Gross Sales: 195.46
-### Net Sales (Excluding Voids): 172.96
-### Total Transactions: 3
-### Average Ticket: 57.65
+### Gross Sales: 0.00
+### Net Sales (Excluding Voids): 0.00
+### Total Transactions: 0
+### Average Ticket: 0.00
 
 
-### Food Sales: 67.96 (34.77%)
-### Drink Sales: 127.50 (65.23%)
+### Food Sales: 0.00 (0.00%)
+### Drink Sales: 0.00 (0.00%)
 
 
 # Payment Summary
 | Payment Method | Transactions | % of Txns | Gross Sales | % of Sales |
 |---|---|---|---|---|
-| Check | 1 | 33.33% | 157.96 | 80.81% |
-| Void | 1 | 33.33% | 22.50 | 11.51% |
-| Cash | 1 | 33.33% | 15.00 | 7.67% |
+# Hourly Sales Breakdown
+| Hour | Total Tx | Valid Tx | Void Tx | Gross Sales | Net Sales |
+|---|---|---|---|---|---|
