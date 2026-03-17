@@ -12,7 +12,7 @@ import javax.swing.*;
 /**
  * Creates the main menu interface and the login when the menu pened
  *
- * <p>The main meu hold button leading
+ * <p>The main menu hold button leading
  * to all other panle pages an has a cashier/manager 
  * login pop up that contral acess.</p>
  *
@@ -33,7 +33,7 @@ public class MainMenuPanel extends JPanel {
      * users to login each time they return here to
      *  limit cashier access</p>
      *
-     * @param gui the gui object all panel componenetsa re attached to
+     * @param gui the gui object all panel componenetsa are attached to
      */
     public MainMenuPanel(GUI gui) {
 
