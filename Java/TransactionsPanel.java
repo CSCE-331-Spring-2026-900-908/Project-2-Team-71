@@ -179,7 +179,7 @@ public class TransactionsPanel extends JPanel {
     }
 
     /**
-     * @author FunniName and ethan nguyen and esteban6000
+     * @author FunniName and ethan nguyen and esteban6000 and Qayyum alli
      * This method loads the details of a specific transaction based on the provided transaction ID. It retrieves the customer name and item details from the database and updates the right side of the TransactionsPanel with this information, including the receipt details and total price.
      * @param transactionId The ID of the transaction to load details for.
      */
@@ -237,11 +237,20 @@ public class TransactionsPanel extends JPanel {
         }
     }
 
+    /**
+     * @author esteban6000
+     * This method applies a filter to the transactions table based on the text entered in the search field. It uses a case-insensitive regular expression to filter the rows in the table, allowing users to quickly find specific transactions by customer name or other criteria displayed in the table. If the search field is empty, it clears the filter and shows all transactions.
+     * @param searchField
+     */
     private void applyFilter(JTextField searchField) {
         String text = searchField.getText();
         sorter.setRowFilter(text.isEmpty() ? null : RowFilter.regexFilter("(?i)" + text));
     }
 
+    /**
+     * @author esteban6000
+     * This method loads the data for the transactions table from the database.
+     */
     private void loadTableData() {
         model.setRowCount(0);
         getConnection();
@@ -255,6 +264,10 @@ public class TransactionsPanel extends JPanel {
         }
     }
 
+    /**
+     * @author esteban6000
+     * This method establishes a connection to the database.
+     */
     private static void getConnection() {
         if (conn != null) {
             return;
@@ -269,6 +282,11 @@ public class TransactionsPanel extends JPanel {
         }
     }
 
+
+    /**
+     * @author esteban6000
+     * A functional interface for a simple document listener that updates when the document changes.
+     */
     @FunctionalInterface
     interface SimpleDocumentListener extends javax.swing.event.DocumentListener {
 
