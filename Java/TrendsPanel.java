@@ -35,11 +35,25 @@ import org.jfree.data.general.DefaultPieDataset;
 
 //JMJT
 
+/**
+ * This is the class to create the "Trends" page. It contains four different graphs representing the data
+ * collected in the database. The four graphs are number of products sold, income and loss, 
+ * average time of sales, and monthly receipt count
+ * 
+ * @author Matthew Hebert
+ */
 public class TrendsPanel extends JPanel {
 
     //private GUI gui;
     private static Connection conn;
 
+    /**
+     * This is the constructor for the TrendsPanel class. The gui is passed in and the page is created.
+     * This is the only constructor.
+     * 
+     * @param gui This is the base JPanel that the Trends page is built off of.
+     * @author Matthew Hebert
+     */
     public TrendsPanel(GUI gui) {
         //this.gui = gui;
         setLayout(new BorderLayout());
@@ -88,7 +102,15 @@ public class TrendsPanel extends JPanel {
 
 
     
-
+    /**
+     * This function is handels the creation of the first graph which is a pi chart. It displays how much of each item was
+     * purchased in a given time period
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return The returned value is a set up ChartPanel that can then be added to the Trends page in the JPanel graphPanel section
+     * @author Matthew Hebert
+     */
     private static ChartPanel SetUpPiChart(String startDateString, String endDateString) {
         ResultSet orderCount = GetDrinksAndFoodCount(startDateString, endDateString);
         DefaultPieDataset orderPieDataset = LoadOrderData(orderCount);
@@ -105,6 +127,15 @@ public class TrendsPanel extends JPanel {
         return piChart;
     }
 
+    /**
+     * This function is handels the creation of the second graph which is a bar chart. It displays how much income was made
+     * and loss of money each month in the given time period.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return The returned value is a set up ChartPanel that can then be added to the Trends page in the JPanel graphPanel section
+     * @author Matthew Hebert
+     */
     private static ChartPanel SetUpBarChart(String startDateString, String endDateString) {
         ResultSet incomeData = GetIncome(startDateString, endDateString);
         DefaultCategoryDataset incomeDataset = LoadBarData(incomeData, "Income");
@@ -139,6 +170,15 @@ public class TrendsPanel extends JPanel {
         return barChart;
     }
 
+    /**
+     * This function is handels the creation of the third graph which is a pi chart. It displays the number of receipts 
+     * per month in the given time period.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return The returned value is a set up ChartPanel that can then be added to the Trends page in the JPanel graphPanel section
+     * @author Matthew Hebert
+     */
     private static ChartPanel SetUpLineChart(String startDateString, String endDateString) {
         // line chart will display monthly amount of customer orders by tracking receipts per month
         ResultSet receiptData = GetReceipts(startDateString, endDateString);
@@ -161,6 +201,15 @@ public class TrendsPanel extends JPanel {
         return lineChart;
     }
 
+    /**
+     * This function is handels the creation of the fourth graph which is a pi chart. 
+     * It displays the average number of receipts per hour in the given time period.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return The returned value is a set up ChartPanel that can then be added to the Trends page in the JPanel graphPanel section
+     * @author Matthew Hebert
+     */
     private static ChartPanel SetUpTimeChart(String startDateString, String endDateString) {
         ResultSet timeData = GetTimes(startDateString, endDateString);
         DefaultCategoryDataset timeDataset = LoadTimeData(timeData);
@@ -183,6 +232,15 @@ public class TrendsPanel extends JPanel {
     }
 
 
+    /**
+     * This function handels calling all of the functions to redo the graphs for an updated giventime period
+     * 
+     * @param graphPanel The JPanel that holds all of the graphs is passed into the function to be cleared and updated.
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return Returns nothing. Void.
+     * @author Matthew Hebert
+     */
     private static void RedrawGraphs(JPanel graphPanel, String startDateString, String endDateString) {
         // This function replaces the graphs with the data contained in the 
         // specified time frame
@@ -240,6 +298,18 @@ public class TrendsPanel extends JPanel {
         graphPanel.repaint();
     }
 
+    /**
+     * This function handels refreshing the time frame displayed on the bottom on the "Trends" 
+     * page with a given updated time frame. 
+     * 
+     * @param bottomBar The JPanel that displays the current time frame the graphs 
+     * represent is passed into the function to be cleared and updated.
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @param allTime This is a boolean that is true if the desired time frame is all recorded history. Else, false.
+     * @return Returns nothing. Void.
+     * @author Matthew Hebert
+     */
     private static void RedrawTimeFrame(JPanel bottomBar, String startDateString, String endDateString, Boolean allTime) {
         bottomBar.removeAll();
         bottomBar.revalidate();
@@ -259,6 +329,16 @@ public class TrendsPanel extends JPanel {
         bottomBar.repaint();
     }
 
+    /**
+     * This function is the higher level function that receives the desired time frame from the user and calls the respective
+     * functions to update the "Trends" page accordingly.
+     * 
+     * @param topBar The JPanel that contains the text box for the user to input the desired time frame.
+     * @param graphPanel The JPanel that holds all of the graphs that need to be updated.
+     * @param bottomBar The JPanel that displays the current time frame the graphs represent.
+     * @return Returns nothing. Void.
+     * @author Matthew Hebert
+     */
     private static void RefreshGraphs(JPanel topBar, JPanel graphPanel, JPanel bottomBar) {
         JTextField startField = (JTextField) topBar.getComponent(3);
         JTextField endField = (JTextField) topBar.getComponent(5);
@@ -292,7 +372,14 @@ public class TrendsPanel extends JPanel {
         }
     }
 
-
+    /**
+     * This function queries the database for the amount of each item sold in a given time frame.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetDrinksAndFoodCount(String startDateString, String endDateString) {
         try {
             GetConnection();
@@ -341,6 +428,14 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    /**
+     * This function queries the database for the amount income gained each month in a given time frame.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetIncome(String startDateString, String endDateString) {
         // finds total income from sales for each month
         try {
@@ -385,6 +480,14 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    /**
+     * This function queries the database for the amount loss each month in a given time frame.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetExpenses(String startDateString, String endDateString) {
         // finds total expenses for each month
         try {
@@ -417,6 +520,14 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    /**
+     * This function queries the database for the amount of receipts each month in a given time frame.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetReceipts(String startDateString, String endDateString) {
         // finds total number of receipts for each month
         try {
@@ -459,6 +570,14 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    /**
+     * This function queries the database for the average number of receipts sold each hour in a given time frame.
+     * 
+     * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
+     * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetTimes(String startDateString, String endDateString) {
         // finds avg number of receipts for each hour
         try {
@@ -508,6 +627,13 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
+    /** 
+     * This function finds and returns the eailiers purchase date and the latest purchase date. This information
+     * is useful for finding the startDateString and the endDateString
+     * 
+     * @return It returns a ResultSet that contains the data received back from the database query. Can then be parsed.
+     * @author Matthew Hebert
+     */
     private static ResultSet GetAllTime() {
         // finds avg number of receipts for each hour
         try {
@@ -540,7 +666,14 @@ public class TrendsPanel extends JPanel {
         return null;
     }
 
-
+    /** 
+     * This function resets the graphs to display the data for all purchase history.
+     * 
+     * @param graphPanel The JPanel that holds all of the graphs that need to be updated.
+     * @param bottomBar The JPanel that displays the current time frame the graphs represent.
+     * @return Returns nothing. Void.
+     * @author Matthew Hebert
+     */
     private static void LoadAllTime(JPanel graphPanel, JPanel bottomPanel) {
         // get oldest receipt and newest receipt dates
         ResultSet allTimeSet = GetAllTime();
@@ -566,6 +699,14 @@ public class TrendsPanel extends JPanel {
         RedrawTimeFrame(bottomPanel, startDateString, endDateString, true);
     }
 
+    /** 
+     * This function converts the result from a database query and turns it into data ready to be used in creating the pi
+     *  chart for number of items sold in a time period.
+     * 
+     * @param orderCount This is the ResultSet from the database query for the number of each item sold in a time frame.
+     * @return Returns a DefaultPieDataset. This can then be used to supply the data when creating a pi chart.
+     * @author Matthew Hebert
+     */
     private static DefaultPieDataset LoadOrderData(ResultSet orderCount) {
 
         // create dataset for pi graph
@@ -584,6 +725,15 @@ public class TrendsPanel extends JPanel {
         return piDataset;
     }
 
+    /** 
+     * This function converts the result from a database query and turns it into data ready to be used in creating the bar
+     * chart for income and loss each month in a time period.
+     * 
+     * @param barData This is the ResultSet from the database query for the income or loss each month during a time period.
+     * @param saleType This is a String that is used to indicate if the barData is income or loss.
+     * @return Returns a DefaultCategoryDataset. This can then be used to supply the data when creating the bar chart.
+     * @author Matthew Hebert
+     */
     private static DefaultCategoryDataset LoadBarData(ResultSet barData, String saleType) {
         // create dataset for bar graph
         DefaultCategoryDataset barDataset = new DefaultCategoryDataset();
@@ -603,6 +753,14 @@ public class TrendsPanel extends JPanel {
         return barDataset;
     }
 
+    /** 
+     * This function converts the result from a database query and turns it into data ready to be used in creating the line
+     * chart for number of receipts per month in a time period.
+     * 
+     * @param receiptData This is the ResultSet from the database query for the number of receipts per month during a time period.
+     * @return Returns a DefaultCategoryDataset. This can then be used to supply the data when creating the line chart.
+     * @author Matthew Hebert
+     */
     private static DefaultCategoryDataset LoadReceiptData(ResultSet receiptData) {
         // create dataset for line graph
         DefaultCategoryDataset lineDataset = new DefaultCategoryDataset();
@@ -622,6 +780,14 @@ public class TrendsPanel extends JPanel {
         return lineDataset;
     }
 
+    /** 
+     * This function converts the result from a database query and turns it into data ready to be used in creating the line
+     * chart for average receipts per hour sampled across a time period.
+     * 
+     * @param timeData This is the ResultSet from the database query for the average number of receipts per hour sampled across a time period.
+     * @return Returns a DefaultCategoryDataset. This can then be used to supply the data when creating the line chart.
+     * @author Matthew Hebert
+     */
     private static DefaultCategoryDataset LoadTimeData(ResultSet timeData) {
         // create dataset for line graph
         DefaultCategoryDataset timeDataset = new DefaultCategoryDataset();
