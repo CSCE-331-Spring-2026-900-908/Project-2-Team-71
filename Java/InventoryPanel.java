@@ -11,6 +11,13 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * InventoryPanel.java
+ * 
+ * This panel allows users to view, add, edit, and delete inventory items.
+ * It features a search bar, a table with item details, and a side panel showing selected item information.
+ * The table supports inline editing and highlights low stock items in red.
+ */
 public class InventoryPanel extends JPanel {
 
     private static Connection conn;
@@ -29,6 +36,12 @@ public class InventoryPanel extends JPanel {
     private JLabel supplierContactLabel = new JLabel("Supplier Contact: -");
     private JLabel totalStatsLabel = new JLabel("Total Items: 0");
 
+    /**
+     * @author Qayyum alli and ethan nguyen
+     * @version 1.0
+     * @throws SQLException if database connection fails
+     * gets the database connection using credentials from the .env file
+     */
     private static void GetConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
@@ -44,6 +57,13 @@ public class InventoryPanel extends JPanel {
         }
     }
 
+    /**
+     * @author Qayyum alli
+     * @param screen the main GUI screen
+     * @version 1.0
+     * sets up the inventory panel with a table, search functionality, and buttons for adding/editing items.
+     * The table supports inline editing and highlights low stock items. Changes can be confirmed to update the database.
+     */
     public InventoryPanel(GUI screen) {
         GetConnection();
         setLayout(new BorderLayout(10, 10));
@@ -93,6 +113,11 @@ public class InventoryPanel extends JPanel {
         inventoryTable.removeColumn(inventoryTable.getColumnModel().getColumn(0));
 
         // Low Stock Highlighter (Red if <= 5)
+        /**
+         * @author Qayyum alli
+         * This custom cell renderer checks the quantity of each item and highlights the row in soft red if the quantity is 5 or less.
+         * It also ensures that the selection background color is preserved when a row is selected, and defaults to white for normal rows.
+         */
         inventoryTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -139,6 +164,11 @@ public class InventoryPanel extends JPanel {
         bottomPanel.add(confirmBtn, BorderLayout.EAST);
 
         // --- Events ---
+        /**
+         * @author Qayyum alli
+         * This listener updates the right-side detail panel whenever a new row is selected in the inventory table. It retrieves the item details from the selected row and displays them in the labels. If no row is selected, it defaults to showing "-" for all fields.
+         * @param e the list selection event triggered by changing the selected row in the inventory table
+         */
         inventoryTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && inventoryTable.getSelectedRow() != -1) {
                 int modelRow = inventoryTable.convertRowIndexToModel(inventoryTable.getSelectedRow());
@@ -149,6 +179,11 @@ public class InventoryPanel extends JPanel {
             }
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener handles the edit button action, toggling the editing mode and updating the button text accordingly.
+         * @param e the action event triggered by clicking the edit button
+         */
         editBtn.addActionListener(e -> {
             if (isEditing && dataChanged) {
                 JOptionPane.showMessageDialog(this, "Confirm changes or refresh first.");
@@ -160,7 +195,12 @@ public class InventoryPanel extends JPanel {
         });
 
         addBtn.addActionListener(e -> showAddItemDialog("", 0, "", ""));
-
+        
+        /**
+         * @author Qayyum alli
+         * This listener handles the confirm button action, saving the table changes and updating the UI.
+         * @param e the action event triggered by clicking the confirm button
+         */
         confirmBtn.addActionListener(e -> {
             saveTableChanges();
             dataChanged = false;
@@ -168,6 +208,11 @@ public class InventoryPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Database Updated!");
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener updates the confirm button visibility based on the table model changes.
+         * @param e the table model event triggered by changes in the inventory table
+         */
         tableModel.addTableModelListener(e -> {
             if (isEditing && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
                 dataChanged = true;
@@ -175,6 +220,11 @@ public class InventoryPanel extends JPanel {
             }
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener updates the inventory data based on the search field input.
+         * @param e the document event triggered by changes in the search field
+         */
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -191,7 +241,12 @@ public class InventoryPanel extends JPanel {
                 refreshData(searchField.getText());
             }
         });
-
+        
+        /**
+         * @author Qayyum alli
+         * This listener refreshes the inventory data when the refresh button is clicked, resetting the search field and hiding the confirm button.
+         * @param e the action event triggered by clicking the refresh button
+         */
         refreshBtn.addActionListener(e -> {
             dataChanged = false;
             confirmBtn.setVisible(false);
@@ -207,6 +262,11 @@ public class InventoryPanel extends JPanel {
         refreshData("");
     }
 
+
+    /**
+     * @author Qayyum alli
+     * This method updates the action buttons displayed for each row in the inventory table based on the editing mode.
+     */
     private void updateActionButtons() {
         buttonPanel.removeAll();
         if (isEditing) {
@@ -244,6 +304,15 @@ public class InventoryPanel extends JPanel {
         buttonPanel.repaint();
     }
 
+
+    /**
+     * @author Qayyum alli
+     * This method displays a dialog for adding a new inventory item or duplicating an existing one. It takes the item details as parameters and allows the user to input or modify them. Upon confirmation, it inserts the new item into the database and refreshes the inventory data.
+     * @param dName the default name of the item to be added or duplicated
+     * @param dQty the default quantity of the item to be added or duplicated
+     * @param dSupp the default supplier name of the item to be added or duplicated
+     * @param dCont the default supplier contact of the item to be added or duplicated
+     */
     private void showAddItemDialog(String dName, int dQty, String dSupp, String dCont) {
         JTextField f1 = new JTextField(dName);
         JTextField f2 = new JTextField(String.valueOf(dQty));
@@ -267,6 +336,11 @@ public class InventoryPanel extends JPanel {
         }
     }
 
+
+    /**
+     * @author Qayyum alli
+     * This method saves the changes made in the inventory table to the database. It iterates through each row of the table model, retrieves the updated values, and executes an update query for each item. If any errors occur during the database update, it displays an error message.
+     */
     private void saveTableChanges() {
         String sql = "UPDATE inventory SET name = ?, amount = ?, supplier_name = ?, supplier_contact = ? WHERE id = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -284,6 +358,11 @@ public class InventoryPanel extends JPanel {
         }
     }
 
+    /**
+     * @author Qayyum alli
+     * This method deletes an inventory item from the database based on the provided item ID. It executes a delete query and handles any SQL exceptions that may occur during the operation.
+     * @param id the unique identifier of the inventory item to be deleted
+     */
     private void deleteFromDatabase(int id) {
         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM inventory WHERE id = ?")) {
             ps.setInt(1, id);
@@ -292,6 +371,11 @@ public class InventoryPanel extends JPanel {
         }
     }
 
+    /**
+     * @author Qayyum alli
+     * This method refreshes the inventory data displayed in the table based on the provided filter. It executes a SQL query to retrieve items that match the filter criteria and updates the table model accordingly. It also calculates and displays the total quantity of items and updates the action buttons for each row.
+     * @param filter the search term used to filter inventory items by name
+     */
     private void refreshData(String filter) {
         if (conn == null) {
             return;
