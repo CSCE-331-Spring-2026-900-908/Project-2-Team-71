@@ -29,6 +29,14 @@ public class MenuPanel extends JPanel {
     private JButton editFoodButton;
     private JButton deleteFoodButton;
 
+    /**
+     * Constructor for the Menu Panel. Initializes the database connection, lays
+     * out the top navigation bar, and builds a tabbed pane containing separate
+     * panels for drinks and food.
+     *
+     * @param gui the parent {@link GUI} instance used to navigate between
+     * screens
+     */
     public MenuPanel(GUI gui) {
         this.gui = gui;
         getConnection();
@@ -50,6 +58,12 @@ public class MenuPanel extends JPanel {
         add(tabbedPane, BorderLayout.CENTER);
     }
 
+    /**
+     * Loads database connection credentials from the {@code .env} file located
+     * in the working directory and opens a JDBC connection, storing it in
+     * {@link #conn}. Logs an error to {@code stderr} if the file cannot be read
+     * or if the connection cannot be established.
+     */
     private void getConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
@@ -75,6 +89,14 @@ public class MenuPanel extends JPanel {
     // ================================================
     // ================== Drink Tab ===================
     // ================================================
+    /**
+     * Constructs and returns the Drinks tab panel. The panel contains a
+     * scrollable {@link JTable} displaying all drinks loaded from the database,
+     * and buttons for adding, editing, and deleting drink entries. Button
+     * action listeners are wired here.
+     *
+     * @return a {@link JPanel} containing the full drinks management UI
+     */
     private JPanel buildDrinkPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
 
@@ -124,6 +146,12 @@ public class MenuPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Queries the {@code drink} table and repopulates {@link #drinkModel} with
+     * the current set of drinks ordered by ID. Clears any existing rows before
+     * loading. Shows an error dialog if the query fails. Does nothing if
+     * {@link #conn} is {@code null}.
+     */
     private void loadDrinks() {
         drinkModel.setRowCount(0);
         if (conn == null) {
@@ -143,6 +171,18 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Opens a modal dialog for creating a new drink or editing an existing one.
+     * The dialog contains fields for the drink's name and price, as well as an
+     * editable ingredient table that maps inventory item IDs to quantities
+     * used. When the user confirms, all changes (drink record and recipe rows)
+     * are persisted inside a single database transaction. If the transaction
+     * fails it is rolled back and an error dialog is shown. The drinks table is
+     * refreshed on success.
+     *
+     * @param drinkId the ID of the drink to edit, or {@code null} to create a
+     * new drink
+     */
     private void openDrinkDialog(Integer drinkId) {
         boolean editing = drinkId != null;
         JTextField nameField = new JTextField();
@@ -274,6 +314,17 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Inserts a new drink record into the {@code drink} table with the given
+     * name and price, then refreshes the drinks table. Shows an error dialog if
+     * the insert fails.
+     *
+     * @param name the name of the drink to insert
+     * @param price the price of the drink to insert
+     * @deprecated this logic is now handled directly inside
+     * {@link #openDrinkDialog(Integer)}
+     */
+    @Deprecated
     private void insertDrink(String name, double price) {
         String sql = "INSERT INTO drink (name, price) VALUES (?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -286,6 +337,18 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Updates the name and price of an existing drink record identified by
+     * {@code id} in the {@code drink} table, then refreshes the drinks table.
+     * Shows an error dialog if the update fails.
+     *
+     * @param id the primary key of the drink to update
+     * @param name the new name for the drink
+     * @param price the new price for the drink
+     * @deprecated this logic is now handled directly inside
+     * {@link #openDrinkDialog(Integer)}
+     */
+    @Deprecated
     private void updateDrink(int id, String name, double price) {
         String sql = "UPDATE drink SET name = ?, price = ? WHERE id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -299,6 +362,14 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Prompts the user for confirmation, then deletes the specified drink and
+     * all of its associated {@code drink_recipe} rows within a single
+     * transaction. Rolls back and shows an error dialog if the deletion fails.
+     * Refreshes the drinks table on success.
+     *
+     * @param id the primary key of the drink to delete
+     */
     private void deleteDrink(int id) {
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Delete drink and its recipe?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
@@ -333,6 +404,14 @@ public class MenuPanel extends JPanel {
     // ================================================
     // ================== Food Tab ====================
     // ================================================
+    /**
+     * Constructs and returns the Food tab panel. The panel contains a
+     * scrollable {@link JTable} displaying all food items loaded from the
+     * database, and buttons for adding, editing, and deleting food entries.
+     * Button action listeners are wired here.
+     *
+     * @return a {@link JPanel} containing the full food management UI
+     */
     private JPanel buildFoodPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
 
@@ -378,6 +457,12 @@ public class MenuPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Queries the {@code food} table and repopulates {@link #foodModel} with
+     * the current set of food items ordered by ID. Clears any existing rows
+     * before loading. Shows an error dialog if the query fails. Does nothing if
+     * {@link #conn} is {@code null}.
+     */
     private void loadFoods() {
         foodModel.setRowCount(0);
         if (conn == null) {
@@ -397,6 +482,18 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Opens a modal dialog for creating a new food item or editing an existing
+     * one. The dialog contains fields for the item's name and price, as well as
+     * an editable ingredient table that maps inventory item IDs to quantities
+     * used. When the user confirms, all changes (food record and recipe rows)
+     * are persisted inside a single database transaction. If the transaction
+     * fails it is rolled back and an error dialog is shown. The food table is
+     * refreshed on success.
+     *
+     * @param foodId the ID of the food item to edit, or {@code null} to create
+     * a new item
+     */
     private void openFoodDialog(Integer foodId) {
         boolean editing = foodId != null;
         JTextField nameField = new JTextField();
@@ -528,6 +625,17 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Inserts a new food record into the {@code food} table with the given name
+     * and price, then refreshes the food table. Shows an error dialog if the
+     * insert fails.
+     *
+     * @param name the name of the food item to insert
+     * @param price the price of the food item to insert
+     * @deprecated this logic is now handled directly inside
+     * {@link #openFoodDialog(Integer)}
+     */
+    @Deprecated
     private void insertFood(String name, double price) {
         String sql = "INSERT INTO food (name, price) VALUES (?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -540,6 +648,18 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Updates the name and price of an existing food record identified by
+     * {@code id} in the {@code food} table, then refreshes the food table.
+     * Shows an error dialog if the update fails.
+     *
+     * @param id the primary key of the food item to update
+     * @param name the new name for the food item
+     * @param price the new price for the food item
+     * @deprecated this logic is now handled directly inside
+     * {@link #openFoodDialog(Integer)}
+     */
+    @Deprecated
     private void updateFood(int id, String name, double price) {
         String sql = "UPDATE food SET name = ?, price = ? WHERE id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -553,6 +673,14 @@ public class MenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Prompts the user for confirmation, then deletes the specified food item
+     * and all of its associated {@code food_recipe} rows within a single
+     * transaction. Rolls back and shows an error dialog if the deletion fails.
+     * Refreshes the food table on success.
+     *
+     * @param id the primary key of the food item to delete
+     */
     private void deleteFood(int id) {
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Delete food and its recipe?", "Confirm Delete", JOptionPane.YES_NO_OPTION);

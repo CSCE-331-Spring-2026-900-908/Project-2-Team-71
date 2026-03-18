@@ -1,13 +1,36 @@
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.event.HierarchyEvent;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
-import javax.swing.*;
 
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
+
+/**
+ * Creates the main menu interface and the login when the menu pened
+ *
+ * <p>The main menu hold button leading
+ * to all other panle pages an has a cashier/manager 
+ * login pop up that contral acess.</p>
+ *
+ * @author Julia Street
+ * @version 1.0
+ */
 public class MainMenuPanel extends JPanel {
 
     private final GUI gui;
@@ -15,6 +38,15 @@ public class MainMenuPanel extends JPanel {
     private static final String MANAGER_PIN = "manager"; // or "mm", still undecided
     private boolean loginInProgress = false;
 
+    /**
+     * Populate all the button on teh main meanu panel
+     *
+     * <p>create paths to all other panels and forces 
+     * users to login each time they return here to
+     *  limit cashier access</p>
+     *
+     * @param gui the gui object all panel componenetsa are attached to
+     */
     public MainMenuPanel(GUI gui) {
 
         this.gui = gui;
@@ -74,6 +106,11 @@ public class MainMenuPanel extends JPanel {
         });
     }
 
+    /**
+     * Show the login screen every time the login flag is false
+     *
+     * @param aFlag description of what this parameter represents
+     */
     @Override
     public void setVisible(boolean aFlag) {
         super.setVisible(aFlag);
@@ -87,6 +124,12 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Check if the login is valid and give the user the appropraite access level
+     *
+     * <p>Check teh cahier ID with the database and the manager with 
+     * the manger password and limits the menu access accordinly</p>
+     */    
     private void forceLoginPopup() {
         if (loginInProgress) {
             return;
@@ -145,6 +188,13 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Establish access to the sql database
+     *
+     * <p>get database access info from .env file 
+     * and open with sql commands and send a test 
+     * command to check connection</p>
+     */
     private void getConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
@@ -167,6 +217,9 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Check if database connection is already esablish and run getConnection if not
+     */
     private void ensureConnection() {
         try {
             if (conn == null || conn.isClosed()) {
@@ -177,6 +230,11 @@ public class MainMenuPanel extends JPanel {
         }
     }
 
+    /**
+     * Validat4es teh cashier ID entered into the login page
+     *
+     * @param cashierId the id number teh user entered into teh login page
+     */
     private boolean cashierExists(int cashierId) {
         ensureConnection();
         if (conn == null) {

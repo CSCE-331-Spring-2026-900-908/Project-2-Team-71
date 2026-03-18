@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,6 +7,16 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.table.*;
 
+/**
+ * Creates the POS panel they system to place orders
+ *
+ * <p>Creates the panel cashiers can access and adds the 
+ * ordering sytems, custom id function, cashier id funtion, 
+ * drnk sleesion and item search bar</p>
+ *
+ * @author Julia Street
+ * @version 1.0
+ */
 public class POSPanel extends JPanel {
 
     private final GUI gui;
@@ -46,6 +55,14 @@ public class POSPanel extends JPanel {
     // total display
     private double finalTotal = 0.0;
 
+    /**
+     * Populates all the object ont the point of sale page and creates the page layout
+     *
+     * <p>The interface is created and each section 
+     * needed for a POS operateion is added in the correct place</p>
+     *
+     * @param gui the gui object all panel componenetsa are attached to
+     */
     public POSPanel(GUI gui) {
         this.gui = gui;
         getConnection();
@@ -57,6 +74,15 @@ public class POSPanel extends JPanel {
         add(buildRightPanel(), BorderLayout.CENTER);
     }
 
+    /**
+     * Establishes a connection to the database using credentials stored in a .env file.
+     *
+     * <p>This method reads database login info from
+     * a .env file and uses them to create a connection </p>
+     *
+     * @throws IOException if there is an issue reading the .env file (handled internally)
+     * @throws SQLException if a database access error occurs (handled internally)
+     */
     private void getConnection() {
 
         Properties props = new Properties();
@@ -86,6 +112,10 @@ public class POSPanel extends JPanel {
     }
 
     /////////////  db connection  /////////////////////////////////////////////////////////
+
+    /**
+     * Check if the database is connected and runs get connection if not
+     */
     private void ensureConnection() {
         try {
             if (conn == null || conn.isClosed()) {
@@ -99,6 +129,16 @@ public class POSPanel extends JPanel {
     /////////////////////////////////////////////////////////////////////////////////////////
 
     /////////  top left cusomer look up  //////////////////////////////////////////////////
+
+    /**
+     * Builds and returns the left panel of the POS interface.
+     *
+     * <p>Organizes teh panel into three main sections:
+     * a customer information section at the top, a cart display in the center,
+     * and a checkout section at the bottom.</p>
+     *
+     * @return an item representing the fully constructed left panel
+     */
     private JComponent buildLeftPanel() {
         JPanel left = new JPanel(new BorderLayout(10, 10));
         left.setPreferredSize(new Dimension(350, 0));
@@ -118,6 +158,16 @@ public class POSPanel extends JPanel {
     //////////////////////////////////////////////////////////////////////////////////////////
 
     //////////////  top right customer info //////////////////////////////////////////////////
+
+    /**
+     * Builds and returns the customer information section of the POS interface.
+     *
+     * <p>This section includes a search field and button for searching customers,
+     * and labels to display customer info: ID, name, phone number,
+     * and reward points.</p>
+     *
+     * @return a item representing the customer section panel
+     */
     private JComponent buildCustomerSection() {
         JPanel customer = new JPanel();
         customer.setLayout(new BoxLayout(customer, BoxLayout.Y_AXIS));
@@ -161,6 +211,12 @@ public class POSPanel extends JPanel {
         return customer;
     }
 
+    /**
+     * Searches for a customer in the database using the input from the search field.
+     *
+     * <p>If there is a connection to the database. then the custoer info
+     *  is reterived from the database to be display i the customer section</p>
+     */
     private void lookupCustomer() {
         String key = customerLookupField.getText().trim();
         if (key.isEmpty()) {
@@ -203,6 +259,9 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Sets the cutomer display back t null characters
+     */
     private void clearCustomerDisplay() {
         idValue.setText("-");
         nameValue.setText("-");
@@ -223,6 +282,14 @@ public class POSPanel extends JPanel {
     // Running total
     private double total = 0.0;
 
+    /**
+     * Builds and returns the cart/checkout section of the POS interface.
+     *
+     * <p>This section contains a table that displays items currently in the order,
+     * including their type, item ID, name, selected options, and price.</p>
+     *
+     * @return an item representing the cart section panel
+     */
     private JComponent buildCartSection() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Order"));
@@ -244,6 +311,26 @@ public class POSPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Builds and returns the checkout section of the POS interface.
+     *
+     * <p>This section includes components for displaying the total cost,
+     * applying discounts, completing the checkout process, setting the cashier,
+     * and returning to the main menu. The layout is organized vertically using
+     * a BoxLayout for clear separation of each functional area.</p>
+     *
+     * <p>The checckout has components:
+     * <ul>
+     *   <li>A display label showing the order total</li>
+     *   <li>A button to apply discounts</li>
+     *   <li>A checkout button to finalize the transaction</li>
+     *   <li>A cashier input field</li>
+     *   <li>A button to return to the main menu</li>
+     * </ul>
+     * </p>
+     *
+     * @return a {@link JComponent} representing the checkout section panel
+     */
     private JComponent buildCheckoutSection() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -323,6 +410,13 @@ public class POSPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Accesses the database to fins and get the attributes for a spesific discout
+     *
+     * <p>Searches fo attrbute associated with 
+     * the discount name searched and applied that 
+     * to the checkout toals</p>
+     */
     private void applyDiscount() {
         String typed = JOptionPane.showInputDialog(this, "Enter discount type (e.g., Student):");
         if (typed == null) {
@@ -385,6 +479,11 @@ public class POSPanel extends JPanel {
         return Math.round(x * 100.0) / 100.0;
     }
 
+    /**
+     * Recalculates the total cost of the current order and updates the total label.
+     *
+     * <p>This is used whn discount are apllied or items are in chackout are changed.</p>
+     */
     private void recalcAndUpdateTotalLabel() {
         // 'total' is your running subtotal from cart items
         double subtotal = total;
@@ -398,6 +497,19 @@ public class POSPanel extends JPanel {
         totalLabel.setText(String.format("$%.2f", finalTotal));
     }
 
+    /**
+     * Adds an item to the cart and updates the total cost.
+     *
+     * <p>This method inserts a new row into the checkout cart table with the given item
+     * details, including type, ID, name, options, and price. It then
+     * updates the total.</p>
+     *
+     * @param type the category or type of the item
+     * @param id the unique identifier of the item
+     * @param itemName the name of the item
+     * @param options any selected options or customizations for the item
+     * @param price the price of the item
+     */
     public void addToCartWithId(String type, int id, String itemName, String options, double price) {
 
         cartModel.addRow(new Object[]{
@@ -412,6 +524,16 @@ public class POSPanel extends JPanel {
         recalcAndUpdateTotalLabel();
     }
 
+    /**
+     * Inserts a new receipt record into the database and returns its ID.
+     *
+     * <p>This method creates a receipt entry using the current transaction details.
+     * The purchase date is set to the current timestamp. If no valid
+     * customer or cashier ID is available, a default value of 0 is used.</p>
+     *
+     * @return the ID of the newly inserted receipt
+     * @throws SQLException if a database access error occurs
+     */
     private int insertReceiptRow() throws SQLException {
         String sql = """
         INSERT INTO receipt (purchase_date, customer_id, cashier_id, tax, payment_method, discount)
@@ -439,6 +561,15 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Inserts all items from the cart into the database for a given receipt.
+     *
+     * <p>This method iterates through each item in the cart and inserts it into
+     * the appropriate database table based on its type.</p>
+     *
+     * @param receiptId the ID of the receipt to associate the cart items with
+     * @throws SQLException if a database access error occurs during insertion
+     */
     private void insertCartItems(int receiptId) throws SQLException {
 
         String foodSql = "INSERT INTO food_to_receipt (receipt_id, food_id) VALUES (?, ?)";
@@ -485,6 +616,18 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Extracts the value associated with a specific key from an options string.
+     *
+     * <p>This method searches the 'options' string for a specified key and
+     * returns the corresponding value. The value is assumed to follow the key
+     * and end at the next comma or the end of the string. If the key is not found,
+     * an empty string is returned.</p>
+     *
+     * @param options the full options string containing key value pairs
+     * @param key the key to search for within the options string
+     * @return the extracted value associated with the key, or an empty string if not found
+     */
     private String extractOption(String options, String key) {
         int start = options.indexOf(key);
         if (start == -1) {
@@ -498,6 +641,18 @@ public class POSPanel extends JPanel {
         return options.substring(start, end).trim();
     }
 
+    /**
+     * Validates and sets the cashier based on the entered cashier ID.
+     *
+     * <p>This method retrieves the cashier I D from the input field, verifies that it
+     * is a valid numeric value, and queries the database to find a matching cashier.
+     * If a valid cashier is found, the cashier ID and name are stored and displayed
+     * in the UI. If the ID is invalid or not found, the cashier information is cleared
+     * and an error message is shown.</p>
+     *
+     * <p>The method ensures a valid database connection before performing the lookup
+     * and handles any SQL errors by displaying an error dialog.</p>
+     */
     private void setCashierFromId() {
         String text = cashierIdField.getText().trim();
 
@@ -539,10 +694,22 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Updates the total label to display the current subtotal with standard dollar/cent format>
+     */
     private void updateTotalLabel() {
         totalLabel.setText(String.format("$%.2f", total));
     }
 
+    /**
+     * Processes the checkout for the current order.
+     *
+     * <p>This method validates that the cart is not empty, calculates the subtotal,
+     * discount, tax, and final total, and prompts the user to select a payment method.
+     * It then displays a summary of the transaction to the user. After a successful 
+     * checkout, the cart, totals, discount information, and payment method
+     * are reset, and the UI is updated accordingly.</p>
+     */
     private void onCheckout() {
         if (cartModel.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "Cart is empty.");
@@ -609,6 +776,17 @@ public class POSPanel extends JPanel {
         totalLabel.setText("$0.00");
     }
 
+    /**
+     * Prompts the user to select or enter a payment method
+     *
+     * <p>This method displays a dialog with payment options:
+     * Cash, Card, Other, Cancel. If the user selects "Other", they are
+     * prompted to enter a custom payment method. If the user cancels the
+     * dialog or provides invalid input, null is returned.</p>
+     *
+     * @return the selected or entered payment method as a string,
+     *         or null if the user cancels or provides invalid input
+     */
     private String promptForPaymentMethod() {
         String[] options = {"Cash", "Card", "Other", "Cancel"};
 
@@ -648,6 +826,15 @@ public class POSPanel extends JPanel {
     ///////////////////////////////////////////////////////////////////////////////////////
 
     /////////////////////// right section //////////////////////////////////////////////////
+    
+    /**
+     * Builds and returns the right panel of the POS interface.
+     *
+     * <p>This panel contains the main item selection components, including
+     * a grid of available drinks in the center and a search bar feild at the bottom.</p>
+     *
+     * @return a item representing the panel
+     */
     private JComponent buildRightPanel() {
         JPanel right = new JPanel(new BorderLayout(10, 10));
 
@@ -666,6 +853,16 @@ public class POSPanel extends JPanel {
     private DefaultTableModel resultsModel;
     private JTable resultsTable;
 
+    /**
+     * Builds and returns the search panel for the POS interface.
+     *
+     * <p>This panel provides functionality for searching menu items. It includes
+     * a search bar, as well as a table that displays matching items.
+     * Each result includes an 'add' button that allows items to be added directly
+     * to the cart.</p>
+     *
+     * @return an item representing the search panel
+     */
     private JComponent buildSearchPanel() {
         //test line
         System.out.println("buildSearchPanel() running");
@@ -707,6 +904,14 @@ public class POSPanel extends JPanel {
         return right;
     }
 
+    /**
+     * Searches the menu database for items matching the user's input and displays the results.
+     *
+     * <p>This method retrieves the search key from the user and determines if
+     * it represents an item ID or a name. If the input is numeric, it searches for items
+     * by ID; otherwise, it performs a case-insensitive search by name across both drink
+     * and food tables.</p>
+     */
     private void searchMenu() {
         String key = searchField.getText().trim();
         if (key.isEmpty()) {
@@ -775,6 +980,15 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Retrieves the base price of a drink from the database by its name.
+     *
+     * <p>This method queries the drink table to find the price associated
+     * with the specified drink name.</p>
+     *
+     * @param drinkName the name of the drink to look up
+     * @return the base price of the drink, or 0.0
+     */
     private double getDrinkBasePrice(String drinkName) {
         ensureConnection();
         if (conn == null) {
@@ -798,12 +1012,39 @@ public class POSPanel extends JPanel {
         return 0.0;
     }
 
+    /**
+     * Custom table cell renderer that displays a button in a JTable cell.
+     *
+     * <p>This renderer extends button and implements
+     * table renderer to display a button (e.g., "Add") in table cells.</p>
+     * 
+     * @author Julia Street
+     * @version 1.0
+     */
     private class ButtonRenderer extends JButton implements TableCellRenderer {
-
+        /**
+     * Constructs a ButtonRenderer and ensures the button is opaque
+     * so it is properly displayed in table cells.
+     */
         public ButtonRenderer() {
             setOpaque(true);
         }
 
+        /**
+         * Returns the component used to render a table cell as a button.
+         *
+         * <p>This method sets the button text based on the cell value,
+         * defaulting to 'add' if the value is null, and returns the button
+         * component for display in the table.</p>
+         *
+         * @param table the JTable requesting the renderer
+         * @param value the value of the cell to render
+         * @param isSelected whether the cell is selected
+         * @param hasFocus whether the cell has focus
+         * @param row the row index of the cell
+         * @param column the column index of the cell
+         * @return the component used to render the cell
+         */
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus,
@@ -813,18 +1054,41 @@ public class POSPanel extends JPanel {
         }
     }
 
+    /**
+     * Custom table cell editor that allows button interaction within a JTable cell.
+     *
+     * <p>The editor tracks the clicked state and the row being edited to handle
+     * user interactions appropriately.</p>
+     * 
+     * @author Julia Street
+     */
     private class ButtonEditor extends DefaultCellEditor {
 
         private final JButton button = new JButton();
         private boolean clicked;
         private int row;
 
+        /**
+         * Constructs a ButtonEditor using the specified checkbox component.
+         * 
+         * @param checkBox the checkbox component required by DefaultCellEditor
+         */
         public ButtonEditor(JCheckBox checkBox) {
             super(checkBox);
             button.setOpaque(true);
             button.addActionListener(e -> fireEditingStopped());
         }
 
+        /**
+         * Returns the component used for editing a table cell as a button.
+         *
+         * @param table the JTable requesting the editor
+         * @param value the value of the cell being edited
+         * @param isSelected whether the cell is selected
+         * @param row the row index of the cell
+         * @param column the column index of the cell
+         * @return the button component used for editing the cell
+         */
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value,
                 boolean isSelected, int row, int column) {
@@ -834,6 +1098,11 @@ public class POSPanel extends JPanel {
             return button;
         }
 
+        /**
+         * Returns the value of the cell editor and performs the associated action.
+         *
+         * @return the value of the cell editor, typically 'add'
+         */
         @Override
         public Object getCellEditorValue() {
             if (clicked) {
@@ -852,6 +1121,16 @@ public class POSPanel extends JPanel {
     ////////////////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////////////// top right drink icons ///////////////////////////////
+    
+    /**
+     * Builds and returns a grid of drink selection buttons for the POS interface.
+     *
+     * <p>This method queries the database for all available drinks and
+     * creates a button for each one. Each button has the drink name and price
+     * and allows the user to select and customize the drink.</p>
+     * 
+     * @return a item containing the drink selection grid
+     */
     private JComponent buildDrinkGrid() {
 
         JPanel grid = new JPanel(new GridLayout(0, 3, 10, 10));
@@ -892,6 +1171,17 @@ public class POSPanel extends JPanel {
         return grid;
     }
 
+    /**
+     * Displays a popup for customizing a selected drink and adds it to the cart.
+     *
+     * <p>This method presents a user interface allowing the user to choose drink
+     * customization options such as ice level, sweetness, milk type, and optional
+     * add-ons like boba or popping boba. </p>
+     *
+     * @param drinkId the unique identifier of the selected drink
+     * @param drinkName the name of the selected drink
+     * @param basePrice the base price of the drink before add-ons
+     */
     private void openCustomizeDialog(int drinkId, String drinkName, double basePrice) {
 
         JComboBox<String> iceBox = new JComboBox<>(new String[]{"No Ice", "Less Ice", "Normal Ice"});

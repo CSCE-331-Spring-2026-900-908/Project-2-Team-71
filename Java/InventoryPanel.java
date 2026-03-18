@@ -12,11 +12,23 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * InventoryPanel.java
- * 
- * This panel allows users to view, add, edit, and delete inventory items.
- * It features a search bar, a table with item details, and a side panel showing selected item information.
- * The table supports inline editing and highlights low stock items in red.
+ * A panel that displays the current inventory in a sortable, searchable
+ * {@link JTable}. Rows with a quantity of five or fewer are highlighted in soft
+ * red as a low-stock warning. The panel supports inline editing, adding new or
+ * duplicate items via a dialog, and deleting rows, all backed by a PostgreSQL
+ * database. A detail pane on the right shows information for the currently
+ * selected row.
+ *
+ * <p>
+ * <b>Known issues:</b>
+ * <ul>
+ * <li>{@link #deleteFromDatabase(int)} and {@link #refreshData(String)} both
+ * contain empty {@code catch} blocks that silently swallow SQL exceptions.
+ * Errors are not reported to the user or logged anywhere.</li>
+ * <li>{@link #GetConnection()} uses PascalCase naming, which violates the Java
+ * method naming convention. It should be renamed to
+ * {@code getConnection()}.</li>
+ * </ul>
  */
 public class InventoryPanel extends JPanel {
 
@@ -37,10 +49,14 @@ public class InventoryPanel extends JPanel {
     private JLabel totalStatsLabel = new JLabel("Total Items: 0");
 
     /**
-     * @author Qayyum alli and ethan nguyen
-     * @version 1.0
-     * @throws SQLException if database connection fails
-     * gets the database connection using credentials from the .env file
+     * Opens a JDBC connection using credentials read from the {@code .env} file
+     * in the working directory, storing the result in the static field
+     * {@link #conn}. Shows an error dialog and leaves {@link #conn}
+     * {@code null} if the file cannot be read or the connection fails.
+     *
+     * <p>
+     * <b>Note:</b> This method uses PascalCase naming, which does not follow
+     * Java conventions. It should be renamed to {@code getConnection()}.
      */
     private static void GetConnection() {
         Properties props = new Properties();
@@ -58,11 +74,14 @@ public class InventoryPanel extends JPanel {
     }
 
     /**
-     * @author Qayyum alli
-     * @param screen the main GUI screen
-     * @version 1.0
-     * sets up the inventory panel with a table, search functionality, and buttons for adding/editing items.
-     * The table supports inline editing and highlights low stock items. Changes can be confirmed to update the database.
+     * Constructs the {@code InventoryPanel}, opening a database connection and
+     * building the full UI: a top bar with a back button, search field, and
+     * action buttons; a split pane containing the inventory table and an item
+     * detail panel; and a bottom bar with aggregate stats and a confirm-changes
+     * button. All action listeners are wired here and the initial data is
+     * loaded via {@link #refreshData(String)}.
+     *
+     * @param screen the parent {@link GUI} instance used for screen navigation
      */
     public InventoryPanel(GUI screen) {
         GetConnection();
@@ -262,10 +281,12 @@ public class InventoryPanel extends JPanel {
         refreshData("");
     }
 
-
     /**
-     * @author Qayyum alli
-     * This method updates the action buttons displayed for each row in the inventory table based on the editing mode.
+     * Rebuilds the row-header action button panel to match the current set of
+     * visible rows. In edit mode, each row gets a delete button ({@code X}) and
+     * a duplicate button ({@code D}) in the row header. Outside edit mode the
+     * panel is emptied. Calls {@link #revalidate()} and {@link #repaint()} on
+     * the button panel after rebuilding.
      */
     private void updateActionButtons() {
         buttonPanel.removeAll();
@@ -304,14 +325,21 @@ public class InventoryPanel extends JPanel {
         buttonPanel.repaint();
     }
 
-
     /**
-     * @author Qayyum alli
-     * This method displays a dialog for adding a new inventory item or duplicating an existing one. It takes the item details as parameters and allows the user to input or modify them. Upon confirmation, it inserts the new item into the database and refreshes the inventory data.
-     * @param dName the default name of the item to be added or duplicated
-     * @param dQty the default quantity of the item to be added or duplicated
-     * @param dSupp the default supplier name of the item to be added or duplicated
-     * @param dCont the default supplier contact of the item to be added or duplicated
+     * Shows a modal dialog pre-populated with the supplied values, allowing the
+     * user to add a new inventory item or duplicate an existing one. On
+     * confirmation, inserts a row into the {@code inventory} table with the
+     * entered name, quantity, supplier name, and supplier contact (the database
+     * auto-generates the {@code id}). Refreshes the table on success and shows
+     * an error dialog on failure.
+     *
+     * @param dName default item name to pre-fill (empty string for a blank
+     * form)
+     * @param dQty default quantity to pre-fill (0 for a blank form)
+     * @param dSupp default supplier name to pre-fill (empty string for a blank
+     * form)
+     * @param dCont default supplier contact to pre-fill (empty string for a
+     * blank form)
      */
     private void showAddItemDialog(String dName, int dQty, String dSupp, String dCont) {
         JTextField f1 = new JTextField(dName);
@@ -336,10 +364,11 @@ public class InventoryPanel extends JPanel {
         }
     }
 
-
     /**
-     * @author Qayyum alli
-     * This method saves the changes made in the inventory table to the database. It iterates through each row of the table model, retrieves the updated values, and executes an update query for each item. If any errors occur during the database update, it displays an error message.
+     * Iterates over every row in {@link #tableModel} and issues a batched
+     * {@code UPDATE inventory} statement to persist any in-place edits made
+     * while the table was in edit mode. The ID column (index 0) is used as the
+     * {@code WHERE} predicate. Shows an error dialog if the batch fails.
      */
     private void saveTableChanges() {
         String sql = "UPDATE inventory SET name = ?, amount = ?, supplier_name = ?, supplier_contact = ? WHERE id = ?";
@@ -359,9 +388,14 @@ public class InventoryPanel extends JPanel {
     }
 
     /**
-     * @author Qayyum alli
-     * This method deletes an inventory item from the database based on the provided item ID. It executes a delete query and handles any SQL exceptions that may occur during the operation.
-     * @param id the unique identifier of the inventory item to be deleted
+     * Deletes the inventory record with the given {@code id} from the database.
+     *
+     * <p>
+     * <b>Note:</b> Any {@link SQLException} thrown by this method is silently
+     * swallowed by an empty {@code catch} block. Errors are not reported to the
+     * user or logged, which makes failures invisible at runtime.
+     *
+     * @param id the primary key of the inventory row to delete
      */
     private void deleteFromDatabase(int id) {
         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM inventory WHERE id = ?")) {
@@ -372,9 +406,20 @@ public class InventoryPanel extends JPanel {
     }
 
     /**
-     * @author Qayyum alli
-     * This method refreshes the inventory data displayed in the table based on the provided filter. It executes a SQL query to retrieve items that match the filter criteria and updates the table model accordingly. It also calculates and displays the total quantity of items and updates the action buttons for each row.
-     * @param filter the search term used to filter inventory items by name
+     * Clears the table model and reloads inventory rows from the database,
+     * filtering by name using a case-insensitive {@code ILIKE} match on the
+     * supplied filter string. Updates {@link #totalStatsLabel} with the
+     * aggregate quantity across all loaded rows and rebuilds the row-header
+     * action buttons via {@link #updateActionButtons()}. Does nothing if
+     * {@link #conn} is {@code null}.
+     *
+     * <p>
+     * <b>Note:</b> Any {@link SQLException} thrown during the query is silently
+     * swallowed by an empty {@code catch} block. Errors are not reported to the
+     * user or logged.
+     *
+     * @param filter a substring to match against item names; pass an empty
+     * string to load all rows
      */
     private void refreshData(String filter) {
         if (conn == null) {

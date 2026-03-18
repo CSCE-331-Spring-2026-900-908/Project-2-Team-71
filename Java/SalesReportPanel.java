@@ -1,19 +1,42 @@
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
-import javax.swing.*;
+import java.util.Map;
+import java.util.Properties;
 
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerDateModel;
+
+/**
+ * This is the class to create the "Sales Report" page. It contains the option to generate a sales report.
+ * The sales report generates the sales per hour.
+ * 
+ * @author Ethan Nguyen
+ */
 public class SalesReportPanel extends JPanel {
 
     // ==========================================================
@@ -22,6 +45,11 @@ public class SalesReportPanel extends JPanel {
     private JSpinner startDateSpinner;
     private JSpinner endDateSpinner;
 
+    /**
+     * This is the class to hold much of the sales data for a given day.
+     * 
+     * @author Ethan Nguyen
+     */
     private static class SalesData {
 
         double grossSales;
@@ -38,6 +66,11 @@ public class SalesReportPanel extends JPanel {
         int lastReceipt;
     }
 
+    /**
+     * This is the class to hold the payment summary for a given day.
+     * 
+     * @author Ethan Nguyen
+     */
     private static class PaymentSummaryData {
 
         String paymentMethod;
@@ -46,6 +79,12 @@ public class SalesReportPanel extends JPanel {
         double netSales;
     }
 
+    /**
+     * This function is the constructor for the SalesReportPanel. It generates the page for the Sales Report page. This page has the option to generate a sales report.
+     * 
+     * @param gui This is the base JPanel that the Sales Report page is built off of.
+     * @author Ethan Nguyen
+     */
     public SalesReportPanel(GUI gui) {
         this.gui = gui;
         setLayout(new BorderLayout());
@@ -90,6 +129,15 @@ public class SalesReportPanel extends JPanel {
         add(centerPanel, BorderLayout.CENTER);
     }
 
+    /**
+     * This function makes a query to the database to gain all the data of food and drink purchases for a given time period.
+     * The result is a map with key key corresponding to a array of doubles containing the data.
+     * 
+     * @param start Timestamp of the beginning of the desired time frame.
+     * @param end Timestamp of the end of the desired time frame.
+     * @return Returns a map with key key corresponding to a array of doubles containing the data.
+     * @author Ethan Nguyen
+     */
     private Map<String, double[]> getFoodAndDrinkSales(Timestamp start, Timestamp end) {
         // Map<itemName, [quantitySold, totalSales]>
         Map<String, double[]> counts = new LinkedHashMap<>();
@@ -136,6 +184,12 @@ public class SalesReportPanel extends JPanel {
     }
 
     // ===================== TOP BAR =====================
+    /**
+     * This function creates the top bar on the sales report page. The top bar contians the option to go back to the main menu.
+     * 
+     * @return Returns nothing. Void.
+     * @author Ethan Nguyen
+     */
     private void createTopBar() {
 
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -148,6 +202,12 @@ public class SalesReportPanel extends JPanel {
     }
 
     // Get connection to database
+    /**
+     * This function establishes a connection with the database so that a query is possible.
+     * 
+     * @return Returns nothing. Void.
+     * @author Ethan Nguyen
+     */
     private static void getConnection() {
 
         Properties props = new Properties();
@@ -176,6 +236,12 @@ public class SalesReportPanel extends JPanel {
         }
     }
 
+    /**
+     * This function generates a sales report. The sales report will be a generated markdown document.
+     * 
+     * @return Returns nothing. Void.
+     * @author Ethan Nguyen
+     */
     private void generateReport() throws SQLException {
 
         int confirm = JOptionPane.showConfirmDialog(
@@ -337,51 +403,60 @@ public class SalesReportPanel extends JPanel {
         }
     }
 
+    /**
+     * This function makes a query to the database for the sales data of the food and drinks during a given time period.
+     * Using this information, a SalesData object is filled out and returned.
+     * 
+     * @param start Timestamp of the beginning of the desired time frame.
+     * @param end Timestamp of the end of the desired time frame.
+     * @return Returns a SalesData object ready to be used to generate the sales report.
+     * @author Ethan Nguyen
+     */
     private SalesData getSalesData(Timestamp start, Timestamp end) {
 
         String query = """
-WITH receipt_totals AS (
-    SELECT 
-        r.id,
-        r.payment_method,
+            WITH receipt_totals AS (
+                SELECT 
+                    r.id,
+                    r.payment_method,
 
-        COALESCE(SUM(f.price), 0) AS food_total,
-        COALESCE(SUM(d.price), 0) AS drink_total
+                    COALESCE(SUM(f.price), 0) AS food_total,
+                    COALESCE(SUM(d.price), 0) AS drink_total
 
-    FROM receipt r
-    LEFT JOIN food_to_receipt ftr ON r.id = ftr.receipt_id
-    LEFT JOIN food f ON ftr.food_id = f.id
-    LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
-    LEFT JOIN drink d ON dtr.drink_id = d.id
-    WHERE purchase_date >= ?
-    AND purchase_date < ?
-    GROUP BY r.id, r.payment_method
-)
+                FROM receipt r
+                LEFT JOIN food_to_receipt ftr ON r.id = ftr.receipt_id
+                LEFT JOIN food f ON ftr.food_id = f.id
+                LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
+                LEFT JOIN drink d ON dtr.drink_id = d.id
+                WHERE purchase_date >= ?
+                AND purchase_date < ?
+                GROUP BY r.id, r.payment_method
+            )
 
-SELECT
-    COUNT(*) AS total_transactions,
+            SELECT
+                COUNT(*) AS total_transactions,
 
-    COUNT(CASE WHEN payment_method != 'Void' THEN 1 END)
-        AS valid_transactions,
+                COUNT(CASE WHEN payment_method != 'Void' THEN 1 END)
+                    AS valid_transactions,
 
-    COUNT(CASE WHEN payment_method = 'Void' THEN 1 END)
-        AS void_transactions,
+                COUNT(CASE WHEN payment_method = 'Void' THEN 1 END)
+                    AS void_transactions,
 
-    MIN(id) AS first_receipt,
-    MAX(id) AS last_receipt,
+                MIN(id) AS first_receipt,
+                MAX(id) AS last_receipt,
 
-    SUM(food_total + drink_total) AS gross_sales,
+                SUM(food_total + drink_total) AS gross_sales,
 
-    SUM(CASE WHEN payment_method != 'Void'
-             THEN food_total + drink_total
-             ELSE 0 END) AS net_sales,
+                SUM(CASE WHEN payment_method != 'Void'
+                        THEN food_total + drink_total
+                        ELSE 0 END) AS net_sales,
 
-    SUM(CASE WHEN payment_method = 'Void'
-             THEN food_total + drink_total
-             ELSE 0 END) AS void_amount
+                SUM(CASE WHEN payment_method = 'Void'
+                        THEN food_total + drink_total
+                        ELSE 0 END) AS void_amount
 
-FROM receipt_totals;
-""";
+            FROM receipt_totals;
+            """;
 
         SalesData data = new SalesData();
 
@@ -411,38 +486,47 @@ FROM receipt_totals;
         return data;
     }
 
+    /**
+     * This function makes a query to the database for the payment data of the from the recietps during a given time period.
+     * Using this information, a list of PaymentSummaryData objects are filled out and returned.
+     * 
+     * @param start Timestamp of the beginning of the desired time frame.
+     * @param end Timestamp of the end of the desired time frame.
+     * @return Returns a list of filled out PaymentSummaryData objects ready to be used to generate the sales report.
+     * @author Ethan Nguyen
+     */
     private List<PaymentSummaryData> getPaymentSummaryData(Timestamp start, Timestamp end) {
 
         String query = """
-        WITH receipt_totals AS (
-            SELECT 
-                r.id,
-                r.payment_method,
+                WITH receipt_totals AS (
+                    SELECT 
+                        r.id,
+                        r.payment_method,
 
-                COALESCE(SUM(f.price), 0) +
-                COALESCE(SUM(d.price), 0) AS receipt_total
+                        COALESCE(SUM(f.price), 0) +
+                        COALESCE(SUM(d.price), 0) AS receipt_total
 
-            FROM receipt r
-            LEFT JOIN food_to_receipt ftr ON r.id = ftr.receipt_id
-            LEFT JOIN food f ON ftr.food_id = f.id
-            LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
-            LEFT JOIN drink d ON dtr.drink_id = d.id
-            WHERE purchase_date >= ?
-            AND purchase_date < ?
-            GROUP BY r.id, r.payment_method
-        )
+                    FROM receipt r
+                    LEFT JOIN food_to_receipt ftr ON r.id = ftr.receipt_id
+                    LEFT JOIN food f ON ftr.food_id = f.id
+                    LEFT JOIN drink_to_receipt dtr ON r.id = dtr.receipt_id
+                    LEFT JOIN drink d ON dtr.drink_id = d.id
+                    WHERE purchase_date >= ?
+                    AND purchase_date < ?
+                    GROUP BY r.id, r.payment_method
+                )
 
-        SELECT
-            payment_method,
-            COUNT(*) AS total_transactions,
-            SUM(receipt_total) AS gross_sales,
-            SUM(CASE WHEN payment_method != 'Void'
-                     THEN receipt_total
-                     ELSE 0 END) AS net_sales
-        FROM receipt_totals
-        GROUP BY payment_method
-        ORDER BY gross_sales DESC;
-    """;
+                SELECT
+                    payment_method,
+                    COUNT(*) AS total_transactions,
+                    SUM(receipt_total) AS gross_sales,
+                    SUM(CASE WHEN payment_method != 'Void'
+                            THEN receipt_total
+                            ELSE 0 END) AS net_sales
+                FROM receipt_totals
+                GROUP BY payment_method
+                ORDER BY gross_sales DESC;
+            """;
 
         List<PaymentSummaryData> results = new ArrayList<>();
 
