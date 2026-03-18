@@ -132,6 +132,11 @@ public class InventoryPanel extends JPanel {
         inventoryTable.removeColumn(inventoryTable.getColumnModel().getColumn(0));
 
         // Low Stock Highlighter (Red if <= 5)
+        /**
+         * @author Qayyum alli
+         * This custom cell renderer checks the quantity of each item and highlights the row in soft red if the quantity is 5 or less.
+         * It also ensures that the selection background color is preserved when a row is selected, and defaults to white for normal rows.
+         */
         inventoryTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -178,6 +183,11 @@ public class InventoryPanel extends JPanel {
         bottomPanel.add(confirmBtn, BorderLayout.EAST);
 
         // --- Events ---
+        /**
+         * @author Qayyum alli
+         * This listener updates the right-side detail panel whenever a new row is selected in the inventory table. It retrieves the item details from the selected row and displays them in the labels. If no row is selected, it defaults to showing "-" for all fields.
+         * @param e the list selection event triggered by changing the selected row in the inventory table
+         */
         inventoryTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && inventoryTable.getSelectedRow() != -1) {
                 int modelRow = inventoryTable.convertRowIndexToModel(inventoryTable.getSelectedRow());
@@ -188,6 +198,11 @@ public class InventoryPanel extends JPanel {
             }
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener handles the edit button action, toggling the editing mode and updating the button text accordingly.
+         * @param e the action event triggered by clicking the edit button
+         */
         editBtn.addActionListener(e -> {
             if (isEditing && dataChanged) {
                 JOptionPane.showMessageDialog(this, "Confirm changes or refresh first.");
@@ -199,7 +214,12 @@ public class InventoryPanel extends JPanel {
         });
 
         addBtn.addActionListener(e -> showAddItemDialog("", 0, "", ""));
-
+        
+        /**
+         * @author Qayyum alli
+         * This listener handles the confirm button action, saving the table changes and updating the UI.
+         * @param e the action event triggered by clicking the confirm button
+         */
         confirmBtn.addActionListener(e -> {
             saveTableChanges();
             dataChanged = false;
@@ -207,6 +227,11 @@ public class InventoryPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Database Updated!");
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener updates the confirm button visibility based on the table model changes.
+         * @param e the table model event triggered by changes in the inventory table
+         */
         tableModel.addTableModelListener(e -> {
             if (isEditing && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
                 dataChanged = true;
@@ -214,6 +239,11 @@ public class InventoryPanel extends JPanel {
             }
         });
 
+        /**
+         * @author Qayyum alli
+         * This listener updates the inventory data based on the search field input.
+         * @param e the document event triggered by changes in the search field
+         */
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -230,7 +260,12 @@ public class InventoryPanel extends JPanel {
                 refreshData(searchField.getText());
             }
         });
-
+        
+        /**
+         * @author Qayyum alli
+         * This listener refreshes the inventory data when the refresh button is clicked, resetting the search field and hiding the confirm button.
+         * @param e the action event triggered by clicking the refresh button
+         */
         refreshBtn.addActionListener(e -> {
             dataChanged = false;
             confirmBtn.setVisible(false);
