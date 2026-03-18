@@ -187,7 +187,6 @@ public class SalesReportPanel extends JPanel {
     /**
      * This function creates the top bar on the sales report page. The top bar contians the option to go back to the main menu.
      * 
-     * @return Returns nothing. Void.
      * @author Ethan Nguyen
      */
     private void createTopBar() {
@@ -205,7 +204,6 @@ public class SalesReportPanel extends JPanel {
     /**
      * This function establishes a connection with the database so that a query is possible.
      * 
-     * @return Returns nothing. Void.
      * @author Ethan Nguyen
      */
     private static void getConnection() {
@@ -238,8 +236,7 @@ public class SalesReportPanel extends JPanel {
 
     /**
      * This function generates a sales report. The sales report will be a generated markdown document.
-     * 
-     * @return Returns nothing. Void.
+     *
      * @author Ethan Nguyen
      */
     private void generateReport() throws SQLException {

@@ -238,7 +238,6 @@ public class TrendsPanel extends JPanel {
      * @param graphPanel The JPanel that holds all of the graphs is passed into the function to be cleared and updated.
      * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
      * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
-     * @return Returns nothing. Void.
      * @author Matthew Hebert
      */
     private static void RedrawGraphs(JPanel graphPanel, String startDateString, String endDateString) {
@@ -307,7 +306,6 @@ public class TrendsPanel extends JPanel {
      * @param startDateString This is a string that contains the starting date for the desired time period. YYYY-MM-DD
      * @param endDateString This is a string that contains the ending date for the desired time period. YYYY-MM-DD
      * @param allTime This is a boolean that is true if the desired time frame is all recorded history. Else, false.
-     * @return Returns nothing. Void.
      * @author Matthew Hebert
      */
     private static void RedrawTimeFrame(JPanel bottomBar, String startDateString, String endDateString, Boolean allTime) {
@@ -336,7 +334,6 @@ public class TrendsPanel extends JPanel {
      * @param topBar The JPanel that contains the text box for the user to input the desired time frame.
      * @param graphPanel The JPanel that holds all of the graphs that need to be updated.
      * @param bottomBar The JPanel that displays the current time frame the graphs represent.
-     * @return Returns nothing. Void.
      * @author Matthew Hebert
      */
     private static void RefreshGraphs(JPanel topBar, JPanel graphPanel, JPanel bottomBar) {
@@ -350,6 +347,12 @@ public class TrendsPanel extends JPanel {
         RedrawTimeFrame(bottomBar, startDateString, endDateString, false);
     }
 
+    // Get connection to database
+    /**
+     * This function establishes a connection with the database so that a query is possible.
+     * 
+     * @author Ethan Nguyen
+     */
     private static void GetConnection() {
         Properties props = new Properties();
         var envFile = Paths.get(".env").toAbsolutePath().toString();
@@ -671,7 +674,7 @@ public class TrendsPanel extends JPanel {
      * 
      * @param graphPanel The JPanel that holds all of the graphs that need to be updated.
      * @param bottomBar The JPanel that displays the current time frame the graphs represent.
-     * @return Returns nothing. Void.
+     
      * @author Matthew Hebert
      */
     private static void LoadAllTime(JPanel graphPanel, JPanel bottomPanel) {
