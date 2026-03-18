@@ -673,7 +673,7 @@ public class TrendsPanel extends JPanel {
      * This function resets the graphs to display the data for all purchase history.
      * 
      * @param graphPanel The JPanel that holds all of the graphs that need to be updated.
-     * @param bottomBar The JPanel that displays the current time frame the graphs represent.
+     * @param bottomPanel The JPanel that displays the current time frame the graphs represent.
      
      * @author Matthew Hebert
      */
