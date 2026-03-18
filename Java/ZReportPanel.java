@@ -103,7 +103,31 @@ public class ZReportPanel extends JPanel {
         }
     }
 
+    private boolean hasOpenReceipts() {
+        String query = "SELECT EXISTS (SELECT 1 FROM receipt WHERE z_closed = FALSE)";
+        try (PreparedStatement stmt = conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                return rs.getBoolean(1);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+        return false;
+    }
+
     private void generateReport() throws SQLException {
+
+        if (!hasOpenReceipts()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "There are no open transactions. Z-Report cannot be generated.",
+                    "No Open Transactions",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return;
+        }
 
         conn.setAutoCommit(false);
 
