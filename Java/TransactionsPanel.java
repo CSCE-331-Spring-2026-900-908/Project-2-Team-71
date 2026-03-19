@@ -1,0 +1,310 @@
+
+import java.awt.*;
+import java.io.FileInputStream;
+import java.sql.*;
+import java.util.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+
+public class TransactionsPanel extends JPanel {
+
+    // ===================== CONFIG SECTION =====================
+    // Query to get the list of transactions for the left table
+    /**
+     * @author esteban6000
+     * This query retrieves the transaction ID, customer name, and total price for each transaction from the "transactions" table. The results are ordered by transaction ID in descending order, meaning the most recent transactions will appear first in the table. This query is used to populate the main table on the left side of the TransactionsPanel, allowing users to see an overview of all transactions.
+     */
+    private static final String TABLE_QUERY = """
+        SELECT id, customer_name, total_price 
+        FROM transactions 
+        ORDER BY id DESC;
+    """;
+
+    /**
+     * @author FunniName and ethan nguyen
+     * This query retrieves the details of each item in a receipt, including the item name, price, and any modifiers or customizations. It combines results from both food and drink items in the receipt.
+     */
+    private static final String RECEIPT_DETAIL_QUERY = """
+    SELECT f.name AS item_name,
+           f.price AS price,
+           ftr.modifiers AS details
+    FROM food_to_receipt ftr
+    JOIN food f ON ftr.food_id = f.id
+    WHERE ftr.receipt_id = ?
+
+    UNION ALL
+
+    SELECT d.name AS item_name,
+           d.price AS price,
+           CONCAT(
+               'Ice: ', dtr.ice,
+               ', Sweetness: ', dtr.sweetness,
+               ', Milk: ', dtr.milk,
+               ', Boba: ', dtr.boba,
+               ', Popping: ', dtr.popping_boba
+           ) AS details
+    FROM drink_to_receipt dtr
+    JOIN drink d ON dtr.drink_id = d.id
+    WHERE dtr.receipt_id = ?
+""";
+    /**
+     * @author FunniName and ethan nguyen
+     * This array defines the column headers for the main transactions table on the left side of the TransactionsPanel. The columns are "Transaction ID", "Customer Name", and "Total". These headers correspond to the data retrieved by the TABLE_QUERY and help users understand the information displayed in each column of the table.
+     */
+    private static final String[] COLUMNS = {
+        "Transaction ID", "Customer Name", "Total"
+    };
+
+    // ==========================================================
+    private final GUI gui;
+    private static Connection conn;
+
+    private DefaultTableModel model;
+    private JTable table;
+    private TableRowSorter<DefaultTableModel> sorter;
+
+    // Right side components (Detail View)
+    private JLabel customerLabel;
+    private JLabel pointsLabel;
+    private JTextArea receiptArea;
+    /**
+     * @author esteban6000
+     * This constructor initializes the TransactionsPanel by setting up the layout, creating the top bar with
+     * @param gui
+     */
+    public TransactionsPanel(GUI gui) {
+        this.gui = gui;
+        setLayout(new BorderLayout());
+
+        createTopBar();
+        createMainContent();
+
+        loadTableData();
+    }
+    /**
+     * @author esteban6000
+     * This method creates the top bar with navigation and search functionality.
+     */
+    private void createTopBar() {
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JButton backButton = new JButton("Menu");
+        backButton.addActionListener(e -> gui.showScreen("MAIN"));
+        topBar.add(backButton);
+
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(e -> refreshTable());
+        topBar.add(refreshButton);
+
+        JTextField searchField = new JTextField(15);
+        topBar.add(new JLabel("Search:"));
+        topBar.add(searchField);
+
+        add(topBar, BorderLayout.NORTH);
+
+        searchField.getDocument().addDocumentListener(
+                (SimpleDocumentListener) () -> applyFilter(searchField)
+        );
+    }
+    /**
+     * @author esteban6000
+     * This method creates the main content area of the TransactionsPanel, which includes a table on the left side to display transactions and a detail panel on the right side to show information about the selected transaction. The table allows users to select a transaction, which then updates the detail panel with the corresponding receipt information.
+     */
+    private void createMainContent() {
+        // Left Table
+        model = new DefaultTableModel(COLUMNS, 0);
+        table = new JTable(model);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+
+        JScrollPane tableScroll = new JScrollPane(table);
+
+        // Right Detail Panel (Figma Gray Area)
+        JPanel detailPanel = new JPanel();
+        detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+        detailPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        detailPanel.setBackground(Color.LIGHT_GRAY);
+
+        customerLabel = new JLabel("Customer Name: -");
+        pointsLabel = new JLabel("Points: -");
+        receiptArea = new JTextArea(15, 20);
+        receiptArea.setEditable(false);
+
+        detailPanel.add(customerLabel);
+        detailPanel.add(pointsLabel);
+        detailPanel.add(new JScrollPane(receiptArea));
+
+        JButton printButton = new JButton("Print Receipt");
+        detailPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        detailPanel.add(printButton);
+
+        // Split Pane to hold both
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tableScroll, detailPanel);
+        splitPane.setDividerLocation(400);
+        add(splitPane, BorderLayout.CENTER);
+
+        // Selection Logic: Update right side when a row is clicked
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
+                int modelRow = table.convertRowIndexToModel(table.getSelectedRow());
+                Object transactionId = model.getValueAt(modelRow, 0);
+                loadTransactionDetails(transactionId);
+            }
+        });
+    }
+    /**
+     * @author FunniName and ethan nguyen
+     * This method is called when the panel is added to a visible container. It refreshes the table data.
+     */
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        refreshTable();
+    }
+
+    /**
+     * @author FunniName and ethan nguyen
+     * This method refreshes the transactions table by clearing the selection and loading the latest data.
+     */
+    private void refreshTable() {
+        table.clearSelection();
+        receiptArea.setText("");
+        customerLabel.setText("Customer Name: -");
+        pointsLabel.setText("Points: -");
+
+        model.setRowCount(0);
+        loadTableData();
+    }
+
+    /**
+     * @author FunniName and ethan nguyen and esteban6000 and Qayyum alli
+     * This method loads the details of a specific transaction based on the provided transaction ID. It retrieves the customer name and item details from the database and updates the right side of the TransactionsPanel with this information, including the receipt details and total price.
+     * @param transactionId The ID of the transaction to load details for.
+     */
+    private void loadTransactionDetails(Object transactionId) {
+
+        int receiptId = ((Number) transactionId).intValue();
+
+        int modelRow = table.convertRowIndexToModel(table.getSelectedRow());
+        customerLabel.setText("Customer Name: " + model.getValueAt(modelRow, 1));
+
+        receiptArea.setText("");
+
+        try (PreparedStatement stmt = conn.prepareStatement(RECEIPT_DETAIL_QUERY)) {
+
+            stmt.setInt(1, receiptId);
+            stmt.setInt(2, receiptId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            receiptArea.append("Receipt #" + receiptId + "\n");
+            receiptArea.append("----------------------------------\n");
+
+            double total = 0;
+
+            while (rs.next()) {
+                String name = rs.getString("item_name");
+                double price = rs.getDouble("price");
+                String details = rs.getString("details");
+                String [] detailLines = details != null ? details.split(", ") : new String[0];
+                for (int i = 0; i < detailLines.length; i++) {
+                    if(detailLines[i].startsWith("Boba: t")) {
+                        price += 0.50; // Add boba cost
+                    } else if (detailLines[i].startsWith("Popping: t")) {
+                        price += 0.75; // Add popping boba cost
+                    }
+                }
+
+                total += price;
+
+                receiptArea.append(String.format("%-20s $%.2f\n", name, price));
+
+                if (details != null && !details.isBlank()) {
+                    for (Object elem : detailLines) {
+                        receiptArea.append("\t" + elem + "\n");
+                    }
+                    
+                }
+            }
+
+            receiptArea.append("----------------------------------\n");
+            receiptArea.append(String.format("TOTAL: $%.2f\n", total));
+
+        } catch (SQLException e) {
+            receiptArea.setText("Error loading receipt: " + e.getMessage());
+        }
+    }
+
+    /**
+     * @author esteban6000
+     * This method applies a filter to the transactions table based on the text entered in the search field. It uses a case-insensitive regular expression to filter the rows in the table, allowing users to quickly find specific transactions by customer name or other criteria displayed in the table. If the search field is empty, it clears the filter and shows all transactions.
+     * @param searchField
+     */
+    private void applyFilter(JTextField searchField) {
+        String text = searchField.getText();
+        sorter.setRowFilter(text.isEmpty() ? null : RowFilter.regexFilter("(?i)" + text));
+    }
+
+    /**
+     * @author esteban6000
+     * This method loads the data for the transactions table from the database.
+     */
+    private void loadTableData() {
+        model.setRowCount(0);
+        getConnection();
+
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(TABLE_QUERY)) {
+            while (rs.next()) {
+                model.addRow(new Object[]{rs.getObject(1), rs.getObject(2), rs.getObject(3)});
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error loading data: " + e.getMessage());
+        }
+    }
+
+    /**
+     * @author esteban6000
+     * This method establishes a connection to the database.
+     */
+    private static void getConnection() {
+        if (conn != null) {
+            return;
+        }
+        Properties props = new Properties();
+        try (FileInputStream in = new FileInputStream(".env")) {
+            props.load(in);
+            String url = props.getProperty("DATABASE_URL") + props.getProperty("DATABASE_NAME");
+            conn = DriverManager.getConnection(url, props.getProperty("DATABASE_USER"), props.getProperty("DATABASE_PASSWORD"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * @author esteban6000
+     * A functional interface for a simple document listener that updates when the document changes.
+     */
+    @FunctionalInterface
+    interface SimpleDocumentListener extends javax.swing.event.DocumentListener {
+
+        void update();
+
+        @Override
+        default void insertUpdate(javax.swing.event.DocumentEvent e) {
+            update();
+        }
+
+        @Override
+        default void removeUpdate(javax.swing.event.DocumentEvent e) {
+            update();
+        }
+
+        @Override
+        default void changedUpdate(javax.swing.event.DocumentEvent e) {
+            update();
+        }
+    }
+}

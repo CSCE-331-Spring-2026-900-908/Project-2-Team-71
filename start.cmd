@@ -1,4 +1,4 @@
 cd ./Java
-javac GUI.java
-java -cp ".;postgresql-42.2.8.jar" GUI
+javac -cp ".;jfreechart-1.0.1/lib/*" GUI.java
+java -cp ".;postgresql-42.2.8.jar;jfreechart-1.0.1/lib/*" GUI
 del *.class

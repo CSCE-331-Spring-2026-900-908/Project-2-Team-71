@@ -17,15 +17,28 @@ public class GUI extends JFrame {
         container = new JPanel(cardLayout);
 
         // Create screens
-        MainMenuPanel menuPanel = new MainMenuPanel(this);
-        PurchasesPanel purchasesPanel = new PurchasesPanel(this); // your existing POS screen
+        MainMenuPanel mainMenuPanel = new MainMenuPanel(this);
+        InventoryPanel inventoryPanel = new InventoryPanel(this);
+        PurchasesPanel purchasesPanel = new PurchasesPanel(this);
+        TransactionsPanel transactionsPanel = new TransactionsPanel(this);
+        POSPanel posPanel = new POSPanel(this);
+        TrendsPanel trendsPanel = new TrendsPanel(this);
+        MenuPanel menuPanel = new MenuPanel(this);
+        XReportPanel xreport = new XReportPanel(this);
+        ZReportPanel zreport = new ZReportPanel(this);
+        SalesReportPanel salesreport = new SalesReportPanel(this);
 
         // Add screens to container
-        container.add(menuPanel, "MAIN");
+        container.add(mainMenuPanel, "MAIN");
         container.add(purchasesPanel, "Purchases");
-//        PanelTemplate template = new PanelTemplate(this);
-        POSScreen posScreen = new POSScreen(this); //assumoing coonection obj is created elsewhere
-        container.add(posScreen, "POS");
+        container.add(menuPanel, "Menu");
+        container.add(transactionsPanel, "Transaction");
+        container.add(inventoryPanel, "Inventory");
+        container.add(posPanel, "POS");
+        container.add(trendsPanel, "Trends");
+        container.add(xreport, "XReport");
+        container.add(zreport, "ZReport");
+        container.add(salesreport, "SalesReport");
 
         add(container);
 

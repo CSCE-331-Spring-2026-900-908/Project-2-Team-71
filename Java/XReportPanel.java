@@ -47,13 +47,10 @@ public class XReportPanel extends JPanel {
 
     /**
      * Constructs a new XReportPanel.
-     * This constructor initializes the panel layout and connects it to the main GUI.
      * @param gui The main GUI controller used to transition between screens.
      */
 
     public XReportPanel(GUI gui) {
-        this.gui = gui;
-        setLayout(new BorderLayout());
         getConnection();
 
         createTopBar();
