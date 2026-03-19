@@ -13,6 +13,13 @@ import java.util.*;
 import java.util.List;
 import javax.swing.*;
 
+/**
+ * The ZReportPanel class provides a graphical user interface for generating Z-Reports.
+ * A Z-Report provides a final summary of sales data and resets the transaction 
+ * counter (by marking them as closed) for the next business day.
+ * @author Esteban Di Loreto
+ */
+
 public class ZReportPanel extends JPanel {
 
     // ==========================================================
@@ -43,6 +50,11 @@ public class ZReportPanel extends JPanel {
         double netSales;
     }
 
+    /**
+     * Constructs a new ZReportPanel and initializes the database connection and UI.
+     * @param gui The main GUI controller used for screen switching.
+     */
+
     public ZReportPanel(GUI gui) {
         this.gui = gui;
         setLayout(new BorderLayout());
@@ -63,6 +75,11 @@ public class ZReportPanel extends JPanel {
     }
 
     // ===================== TOP BAR =====================
+
+    /**
+     * Creates the top navigation bar containing the menu return button.
+     */
+
     private void createTopBar() {
 
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -75,6 +92,12 @@ public class ZReportPanel extends JPanel {
     }
 
     // Get connection to database
+
+    /**
+     * Establishes a connection to the database using credentials 
+     * stored in the local .env file.
+     */
+
     private static void getConnection() {
 
         Properties props = new Properties();
@@ -103,6 +126,11 @@ public class ZReportPanel extends JPanel {
         }
     }
 
+    /**
+     * Checks the database for any receipts that have not yet been included in a Z-Report.
+     * @return true if there are open receipts; false otherwise.
+     */
+
     private boolean hasOpenReceipts() {
         String query = "SELECT EXISTS (SELECT 1 FROM receipt WHERE z_closed = FALSE)";
         try (PreparedStatement stmt = conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
@@ -116,6 +144,12 @@ public class ZReportPanel extends JPanel {
         }
         return false;
     }
+
+    /**
+     * Orchestrates the Z-Report generation process, including data retrieval, 
+     * file writing (Markdown), and closing out transactions in the database.
+     * @throws SQLException If a database access error occurs during generation.
+     */
 
     private void generateReport() throws SQLException {
 
@@ -272,6 +306,12 @@ public class ZReportPanel extends JPanel {
         }
     }
 
+    /**
+     * Queries the database to calculate high-level sales metrics like gross sales, 
+     * net sales, and void totals for all open receipts.
+     * @return A SalesData object containing the calculated metrics.
+     */
+
     private SalesData getSalesData() {
 
         String query = """
@@ -339,7 +379,12 @@ FROM receipt_totals;
 
         return data;
     }
-
+    
+    /**
+     * Retrieves a breakdown of sales and transaction counts categorized by payment method.
+     * @return A list of PaymentSummaryData objects for each payment method used.
+     */
+    
     private List<PaymentSummaryData> getPaymentSummaryData() {
 
         String query = """
